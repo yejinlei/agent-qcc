@@ -1,0 +1,48 @@
+[project]
+name = "agent-qcc"
+version = "0.1.0"
+description = "LangGraph agent driven by the Qichacha (企查查) connector skill"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "agent-qcc" }]
+dependencies = [
+    "langgraph>=0.2.60",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.3.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "httpx>=0.27",
+    "typer[all]>=0.12",
+    "rich>=13.7",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+cli = ["langgraph-cli>=0.2.0"]
+test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+dev = ["langgraph-cli>=0.2.0", "pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+agent-qcc = "agent_qcc.cli:app"
+agent-qcc-serve = "agent_qcc.cli:serve_main"
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_qcc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Live tests (real 企查查 / real LLM, see tests/test_pipeline_integration_live.py)
+# are opt-in: they also skip themselves when credentials are absent.
+addopts = "-q -m 'not integration'"
+asyncio_mode = "auto"
+markers = [
+    "integration: hits the real 企查查 connector and/or real LLM; excluded from the default run",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

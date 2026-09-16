@@ -1,0 +1,18 @@
+{
+  "slug": "fapaizichan-zhushou",
+  "name": "法拍资产助手",
+  "version": "1.0.0",
+  "installedAt": 1789008535933,
+  "source": "skillhub",
+  "namespace": "user_58ab667e",
+  "canonicalName": "@user_58ab667e/fapaizichan-zhushou",
+  "iconSource": "https://skillhub-1388575217.cos.accelerate.myqcloud.com/skill-icons/uploads/626784/c76d67089de74cce9707ae3faca46426.png",
+  "labels": {
+    "requires_api_key": "false"
+  },
+  "description_zh": "法拍 + 国资（国有资产处置）+ 社会拍卖 三类拍卖/资产处置标的统一检索采集技能。当用户要「找法拍房 / 看国资或社会拍卖房源 / 司法拍卖 / 法拍尽调」，或点名要查 阿里拍卖司法、公拍网、重庆联合产权交易所、中拍平台、北京产权交易所 等平台，并要拿到标的链接、起拍价/评估价/挂牌价、拍卖公告、保证金、户型图与基本情况时使用。只做公开信息检索与结构化汇总，不做交易撮合、不输出任何个人联系方式。普通二手房不接入。",
+  "description_en": "法拍 + 国资（国有资产处置）+ 社会拍卖 三类拍卖/资产处置标的统一检索采集技能。当用户要「找法拍房 / 看国资或社会拍卖房源 / 司法拍卖 / 法拍尽调」，或点名要查 阿里拍卖司法、公拍网、重庆联合产权交易所、中拍平台、北京产权交易所 等平台，并要拿到标的链接、起拍价/评估价/挂牌价、拍卖公告、保证金、户型图与基本情况时使用。只做公开信息检索与结构化汇总，不做交易撮合、不输出任何个人联系方式。普通二手房不接入。",
+  "installs": 15,
+  "iconLocalPath": "C:\\Users\\T480\\.workbuddy\\skills\\fapaizichan-zhushou__skillhub\\_icon.png",
+  "iconDownloadedFrom": "https://skillhub-1388575217.cos.accelerate.myqcloud.com/skill-icons/uploads/626784/c76d67089de74cce9707ae3faca46426.png"
+}
