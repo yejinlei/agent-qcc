@@ -1,0 +1,2834 @@
+{
+  "schema": "qcc-field-index/v1",
+  "skill": "qcc-company",
+  "skill_version": "2.0.0",
+  "generated": "2026-09-16",
+  "snapshot_source": "https://agent.qcc.com/skill/v1/{banking,invest,legal,supply}/README.md · https://agent.qcc.com/skill/QCC-MCP-TERMINOLOGY.md · 12 个官方 SKILL.md 实测抓取",
+  "_readme": {
+    "what": "字段 → MCP Server → 工具 的路由索引。目标：一段自然语言查询，覆盖最多的有效字段，消耗最少的 MCP 调用（积分）。",
+    "tables": [
+      "entity_anchor",
+      "servers",
+      "fields",
+      "packages",
+      "conflicts",
+      "cost_rules",
+      "ontology_hooks"
+    ],
+    "routing_algorithm": [
+      "1. 从自然语言提取字段关键词，在 fields[].tags 里匹配（大小写与中英文变体都在 tags 内，不做模糊归一）。",
+      "2. 每个命中的 field 取 canonical tool。若 field 带 history_tool 且用户明确要历史维度，追加该历史工具（两次调用覆盖现状+历史两层，省得单独找历史工具名）。",
+      "3. 按 server 聚合选中的工具形成调用计划。同 server 内多次 tools/call 共享一次 initialize 握手与 Mcp-Session-Id，聚合能同时省握手开销与积分。",
+      "4. 若字段集被某个 package.cover 完全覆盖且该 package.servers 数不大于手动聚合结果 → 走 package，省掉规划开销。",
+      "5. 若字段集只是某个 package 的子集 → 不走 package，手动聚合更省。这是最常见情形，也是本索引的核心价值。",
+      "6. 计划第一步永远是 entity_anchor 里的锚定工具，先拿到 18 位统一社会信用代码；名称微差必须停下纠错，不得带错误主体继续调用。",
+      "7. 风险类字段命中 ≥2 个维度时，先调用 aggregate=true 的扫描工具一次分诊，只对 count>0 的维度下钻；count=0 的维度逐字引用强语义负向结论，不再调用原子工具。",
+      "8. 任何工具的返回若带 摘要/提示 字段，按 truncatable=true 处理：引用摘要原文、注明「已展示前 N 条 / 累计 M 条」，不把子集当全量。"
+    ],
+    "field_entry_fields": {
+      "field": "业务字段名（用户会这么说的话）",
+      "tags": "同义词/缩写/变体，Route 阶段做关键词匹配用",
+      "server": "所属 MCP Server",
+      "tool": "权威工具名（canonical）",
+      "history_tool": "可选。历史存档维度工具（qcc-history 独有）",
+      "anchor": "entity=企业全称或18位信用代码 · entity+person=企业全称+董监高姓名双锚 · keyword=主题关键词跨主体检索 · url=公网文档链接 · file_path=本机文件路径",
+      "gated": "可选。person_name=需先取到人名 · enterprise_auth=需企业实名认证 · remote_url=需公网 URL · local_stdio=需 Node 20+ 本机",
+      "aggregate": "可选。true=聚合分诊工具，一次返回多维度命中计数，不含明细",
+      "truncatable": "可选。true=返回走上下文脱水（摘要+提示），拿到的是截断子集",
+      "paged_needs_apply": "可选。true=翻页能力需向平台申请开通，默认只返回前 30 条",
+      "cost": "可选。该字段的省调用策略说明"
+    },
+    "cost_rules": {
+      "credits": "注册赠 500 积分（30 天）；每日赠 普通 100 / VIP 150 / SVIP 200（当日有效）；充值 1 元 = 10 积分。",
+      "monthly_cap": "同主体自然月积分封顶：个体工商户 20 / 企业 100 / 董监高人员 100。批量图谱铺点必须先单层扫描再定点下钻，否则封顶被打爆后当主体当月全部不可用。",
+      "top_savers": [
+        "get_company_risk_scan 一次分诊替代 32 个原子风险工具 → 未命中维度每维省 1 次调用",
+        "get_executive_risk_scan 一次分诊替代 30 个个人风险工具 → 同上",
+        "field.history_tool 内联 → 省一次字段名查找，且历史维度只在需要时多花 1 次调用",
+        "year 参数留空取全量 → 避免逐年循环（实测曾逐年调用到 1976，单次运行 60+ 次冗余）",
+        "同 server 工具合并到一次会话 → 省 initialize 握手",
+        "官方 SKILL.md 已安装则本地读 → 省重复 fetch"
+      ],
+      "forbidden": [
+        "跳过扫描直接散弹枪调用原子风险工具",
+        "关联风险扫描后自动逐个下钻每个关联企业（单层预警，只对「有风险关联方」单点下钻）",
+        "带 year 参数逐年循环调用同一工具",
+        "对 count=0 的维度继续调用原子工具求证",
+        "用推测值代替 anchor（如猜人名、猜信用代码）"
+      ]
+    },
+    "verification_note": "servers.tools 共 129 个工具位 / 127 个唯一工具名（parse_document 与 get_parse_result 在 qcc-document 与 qcc-document-mcp 各占一位）。company/risk/ipr/operation/history/executive 六层来自官方 SKILL.md 与 QCC-MCP-TERMINOLOGY.md 实测，legal-regulation/legal-case/tender/document 四层来自官方 CLI 命令实测。官方未承诺工具名长期稳定，上线前建议跑一次远端 tools/list 校准。fields 引用的每个 tool 都出现在 servers.tools 内。"
+  },
+  "entity_anchor": {
+    "primary_key": "18 位统一社会信用代码",
+    "tools": [
+      "get_company_by_query",
+      "verify_company_accuracy",
+      "get_company_registration_info"
+    ],
+    "rule": "业务工具只认真正的企业全称或 18 位统一社会信用代码。品牌名/简称先消歧；全称有微差时停下纠错。锚定结果（全称+信用代码+登记状态）写入上下文，后续全部调用复用同一主键。"
+  },
+  "servers": {
+    "qcc-company": {
+      "name": "企业基座",
+      "url": "https://agent.qcc.com/mcp/company/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": false,
+      "role": "实体锚定与工作流基础层；所有场景第一步",
+      "tool_count": 16,
+      "tools": [
+        "get_company_by_query",
+        "verify_company_accuracy",
+        "get_company_registration_info",
+        "get_company_profile",
+        "get_shareholder_info",
+        "get_actual_controller",
+        "get_beneficial_owners",
+        "get_key_personnel",
+        "get_external_investments",
+        "get_branches",
+        "get_change_records",
+        "get_financial_data",
+        "get_annual_reports",
+        "get_listing_info",
+        "get_contact_info",
+        "get_tax_invoice_info"
+      ]
+    },
+    "qcc-risk": {
+      "name": "风控大脑",
+      "url": "https://agent.qcc.com/mcp/risk/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "风险维度分诊与熔断；先扫后钻",
+      "tool_count": 35,
+      "tools": [
+        "get_company_risk_scan",
+        "get_company_related_risk_scan",
+        "get_dishonest_info",
+        "get_judgment_debtor_info",
+        "get_high_consumption_restriction",
+        "get_exit_restriction",
+        "get_terminated_cases",
+        "get_case_filing_info",
+        "get_judicial_documents",
+        "get_judicial_document_detail",
+        "get_court_notice",
+        "get_hearing_notice",
+        "get_service_notice",
+        "get_service_announcement",
+        "get_judicial_auction",
+        "get_valuation_inquiry",
+        "get_business_exception",
+        "get_serious_violation",
+        "get_administrative_penalty",
+        "get_environmental_penalty",
+        "get_disciplinary_list",
+        "get_tax_arrears_notice",
+        "get_tax_abnormal",
+        "get_tax_violation",
+        "get_default_info",
+        "get_equity_freeze",
+        "get_equity_pledge_info",
+        "get_stock_pledge_info",
+        "get_chattel_mortgage_info",
+        "get_land_mortgage_info",
+        "get_guarantee_info",
+        "get_bankruptcy_reorganization",
+        "get_liquidation_info",
+        "get_cancellation_record_info",
+        "get_simple_cancellation_info"
+      ]
+    },
+    "qcc-ipr": {
+      "name": "知产引擎",
+      "url": "https://agent.qcc.com/mcp/ipr/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "知识产权资产与数字资产矩阵",
+      "tool_count": 7,
+      "tools": [
+        "get_trademark_info",
+        "get_patent_info",
+        "get_copyright_work_info",
+        "get_software_copyright_info",
+        "get_standard_info",
+        "get_internet_service_info",
+        "get_ipr_pledge"
+      ]
+    },
+    "qcc-operation": {
+      "name": "经营罗盘",
+      "url": "https://agent.qcc.com/mcp/operation/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "经营动态与政府监管合规背书",
+      "tool_count": 12,
+      "tools": [
+        "get_bidding_info",
+        "get_qualifications",
+        "get_administrative_license",
+        "get_telecom_license",
+        "get_credit_evaluation",
+        "get_import_export_credit",
+        "get_recruitment_info",
+        "get_news_sentiment",
+        "get_company_announcement",
+        "get_financing_records",
+        "get_honor_info",
+        "get_random_check"
+      ]
+    },
+    "qcc-history": {
+      "name": "历史存档",
+      "url": "https://agent.qcc.com/mcp/history/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": "enterprise_auth",
+      "paged": true,
+      "role": "时间维度穿透；洗白识别与治理稳定性",
+      "tool_count": 20,
+      "tools": [
+        "get_historical_registration",
+        "get_historical_legal_rep",
+        "get_historical_executives",
+        "get_historical_shareholders",
+        "get_historical_investments",
+        "get_historical_dishonest",
+        "get_historical_judgment_debtor",
+        "get_historical_high_consumption_ban",
+        "get_historical_business_exception",
+        "get_historical_admin_penalty",
+        "get_historical_admin_license",
+        "get_historical_tax_arrears",
+        "get_historical_equity_freeze",
+        "get_historical_equity_pledge",
+        "get_historical_chattel_mortgage",
+        "get_historical_land_mortgage",
+        "get_historical_ipr_pledge",
+        "get_historical_trademark",
+        "get_historical_patent",
+        "get_historical_terminated_cases"
+      ]
+    },
+    "qcc-executive": {
+      "name": "董监高画像",
+      "url": "https://agent.qcc.com/mcp/executive/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "企业数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": "person_name",
+      "paged": true,
+      "role": "以人查风险；人-企业二部图展开",
+      "tool_count": 32,
+      "tools": [
+        "get_executive_positions",
+        "get_executive_legal_rep_roles",
+        "get_executive_investments",
+        "get_executive_controlled_companies",
+        "get_executive_related_companies",
+        "get_executive_historical_partners",
+        "get_executive_historical_positions",
+        "get_executive_historical_legal_rep_roles",
+        "get_executive_historical_investments",
+        "get_executive_risk_scan",
+        "get_executive_related_risk_scan",
+        "get_executive_dishonest",
+        "get_executive_judgment_debtor",
+        "get_executive_high_consumption_ban",
+        "get_executive_exit_restriction",
+        "get_executive_judicial_docs",
+        "get_executive_case_filing",
+        "get_executive_court_notice",
+        "get_executive_hearing_notice",
+        "get_executive_service_notice",
+        "get_executive_terminated_cases",
+        "get_executive_pre_litigation_mediation",
+        "get_executive_admin_penalty",
+        "get_executive_equity_freeze",
+        "get_executive_equity_pledge",
+        "get_executive_stock_pledge",
+        "get_executive_tax_violation",
+        "get_executive_valuation_inquiry",
+        "get_executive_property_reward_notice",
+        "get_executive_historical_dishonest",
+        "get_executive_historical_judgment_debtor",
+        "get_executive_beneficial_owner"
+      ]
+    },
+    "qcc-legal-regulation": {
+      "name": "法规检索",
+      "url": "https://agent.qcc.com/mcp/regulation/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "法律数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "法律法规全文检索；跨主体",
+      "tool_count": 1,
+      "tools": [
+        "get_legal_regulation_search"
+      ]
+    },
+    "qcc-legal-case": {
+      "name": "司法检索",
+      "url": "https://agent.qcc.com/mcp/case/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "法律数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "类案与立案检索；跨主体",
+      "tool_count": 1,
+      "tools": [
+        "get_judicial_case_search"
+      ]
+    },
+    "qcc-tender": {
+      "name": "标讯检索",
+      "url": "https://agent.qcc.com/mcp/tender/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "标讯数据",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": null,
+      "paged": true,
+      "role": "全国招投标公告检索；跨主体",
+      "tool_count": 1,
+      "tools": [
+        "search_tenders"
+      ]
+    },
+    "qcc-document": {
+      "name": "远端文档解析",
+      "url": "https://agent.qcc.com/mcp/document/stream",
+      "command": null,
+      "type": "streamableHttp",
+      "domain": "智能文档",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "env": null,
+      "gated": "remote_url",
+      "paged": false,
+      "role": "解析公网可访问 URL 的长文档",
+      "tool_count": 2,
+      "tools": [
+        "parse_document",
+        "get_parse_result"
+      ]
+    },
+    "qcc-document-mcp": {
+      "name": "本地文档解析",
+      "url": null,
+      "command": "npx -y qcc-document-mcp",
+      "type": "stdio",
+      "domain": "智能文档",
+      "headers": null,
+      "env": {
+        "QCC_DOCUMENT_AUTHORIZATION": "Bearer YOUR_API_KEY"
+      },
+      "gated": "local_stdio",
+      "paged": false,
+      "role": "解析本机文件；唯一非 streamableHttp 入口，需 Node 20+",
+      "tool_count": 2,
+      "tools": [
+        "parse_document",
+        "get_parse_result"
+      ]
+    }
+  },
+  "fields": [
+    {
+      "field": "企业搜索",
+      "tags": [
+        "公司搜索",
+        "主体检索",
+        "品牌名",
+        "简称",
+        "别名",
+        "消歧",
+        "查哪家公司"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_by_query",
+      "anchor": "keyword"
+    },
+    {
+      "field": "企业名称核实",
+      "tags": [
+        "名称核实",
+        "名称匹配",
+        "全称校验",
+        "名称有没有写错"
+      ],
+      "server": "qcc-company",
+      "tool": "verify_company_accuracy",
+      "anchor": "entity"
+    },
+    {
+      "field": "统一社会信用代码",
+      "tags": [
+        "信用代码",
+        "uscc",
+        "18位代码",
+        "社会统一信用代码"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "登记状态",
+      "tags": [
+        "经营状态",
+        "存续",
+        "吊销",
+        "注销",
+        "在营",
+        "还在不在营业"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "法定代表人",
+      "tags": [
+        "法代",
+        "法人",
+        "法定代表人姓名"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "注册资本",
+      "tags": [
+        "注册资金",
+        "认缴",
+        "注册金额"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "实缴资本",
+      "tags": [
+        "实缴",
+        "实缴金额"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "成立日期",
+      "tags": [
+        "成立时间",
+        "成立时间点",
+        "注册日期"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "注册地址",
+      "tags": [
+        "地址",
+        "住所",
+        "注册地",
+        "所在市"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "经营范围",
+      "tags": [
+        "经营范围",
+        "业务范围",
+        "做什么生意"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "企业规模",
+      "tags": [
+        "企业规模",
+        "人员规模",
+        "小微企业"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_registration_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "企业简介",
+      "tags": [
+        "公司简介",
+        "主营业务",
+        "业务简介",
+        "公司介绍"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_profile",
+      "anchor": "entity"
+    },
+    {
+      "field": "所属行业",
+      "tags": [
+        "行业",
+        "行业分类",
+        "属于哪个行业",
+        "行业归属"
+      ],
+      "server": "qcc-company",
+      "tool": "get_company_profile",
+      "anchor": "entity"
+    },
+    {
+      "field": "股东信息",
+      "tags": [
+        "股东",
+        "股东构成",
+        "持股",
+        "出资比例",
+        "认缴出资"
+      ],
+      "server": "qcc-company",
+      "tool": "get_shareholder_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "股权比例",
+      "tags": [
+        "持股比例",
+        "占股",
+        "股权占比"
+      ],
+      "server": "qcc-company",
+      "tool": "get_shareholder_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "实际控制人",
+      "tags": [
+        "实控人",
+        "实际控制",
+        "最终控制人",
+        "控制人是谁"
+      ],
+      "server": "qcc-company",
+      "tool": "get_actual_controller",
+      "anchor": "entity"
+    },
+    {
+      "field": "受益所有人",
+      "tags": [
+        "ubo",
+        "受益人",
+        "最终受益自然人",
+        "25%阈值"
+      ],
+      "server": "qcc-company",
+      "tool": "get_beneficial_owners",
+      "anchor": "entity"
+    },
+    {
+      "field": "主要人员",
+      "tags": [
+        "董监高",
+        "高管名单",
+        "董事",
+        "监事",
+        "总经理",
+        "管理团队",
+        "ceo"
+      ],
+      "server": "qcc-company",
+      "tool": "get_key_personnel",
+      "anchor": "entity"
+    },
+    {
+      "field": "对外投资",
+      "tags": [
+        "对外投资",
+        "子公司",
+        "参股公司",
+        "投资组合",
+        "投资版图"
+      ],
+      "server": "qcc-company",
+      "tool": "get_external_investments",
+      "anchor": "entity"
+    },
+    {
+      "field": "分支机构",
+      "tags": [
+        "分公司",
+        "分支机构",
+        "全国布局",
+        "网点"
+      ],
+      "server": "qcc-company",
+      "tool": "get_branches",
+      "anchor": "entity"
+    },
+    {
+      "field": "工商变更记录",
+      "tags": [
+        "变更记录",
+        "工商变更",
+        "变更历史",
+        "变更事项",
+        "法人变更"
+      ],
+      "server": "qcc-company",
+      "tool": "get_change_records",
+      "anchor": "entity"
+    },
+    {
+      "field": "财务数据",
+      "tags": [
+        "财务",
+        "财务数据",
+        "资产负债表",
+        "资产负债率",
+        "营收",
+        "利润",
+        "财务指标",
+        "资不抵债"
+      ],
+      "server": "qcc-company",
+      "tool": "get_financial_data",
+      "anchor": "entity"
+    },
+    {
+      "field": "营业收入",
+      "tags": [
+        "营收",
+        "收入",
+        "营业额",
+        "主营收入"
+      ],
+      "server": "qcc-company",
+      "tool": "get_financial_data",
+      "anchor": "entity"
+    },
+    {
+      "field": "净利润",
+      "tags": [
+        "净利润",
+        "利润",
+        "净利"
+      ],
+      "server": "qcc-company",
+      "tool": "get_financial_data",
+      "anchor": "entity"
+    },
+    {
+      "field": "资产负债率",
+      "tags": [
+        "负债率",
+        "资产负债比",
+        "偿债能力",
+        "资不抵债"
+      ],
+      "server": "qcc-company",
+      "tool": "get_financial_data",
+      "anchor": "entity"
+    },
+    {
+      "field": "所有者权益",
+      "tags": [
+        "净资产",
+        "所有者权益",
+        "净资产额"
+      ],
+      "server": "qcc-company",
+      "tool": "get_financial_data",
+      "anchor": "entity"
+    },
+    {
+      "field": "年度信息",
+      "tags": [
+        "年报",
+        "年度报告",
+        "从业人数",
+        "参保人数",
+        "社保人数"
+      ],
+      "server": "qcc-company",
+      "tool": "get_annual_reports",
+      "anchor": "entity"
+    },
+    {
+      "field": "上市信息",
+      "tags": [
+        "上市",
+        "股票代码",
+        "总市值",
+        "交易所",
+        "总股本",
+        "发行日期"
+      ],
+      "server": "qcc-company",
+      "tool": "get_listing_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "联系方式",
+      "tags": [
+        "联系方式",
+        "电话",
+        "邮箱",
+        "官网",
+        "联系电话"
+      ],
+      "server": "qcc-company",
+      "tool": "get_contact_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "税号开票信息",
+      "tags": [
+        "开票信息",
+        "纳税人识别号",
+        "开户行",
+        "银行账号",
+        "发票信息"
+      ],
+      "server": "qcc-company",
+      "tool": "get_tax_invoice_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "风险扫描",
+      "tags": [
+        "风险扫描",
+        "风险总览",
+        "风险面",
+        "34类风险",
+        "风险标签",
+        "风险体检"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_company_risk_scan",
+      "anchor": "entity",
+      "aggregate": true,
+      "truncatable": true
+    },
+    {
+      "field": "关联企业风险",
+      "tags": [
+        "关联风险",
+        "关联方风险",
+        "关联企业风险面",
+        "风险关联方"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_company_related_risk_scan",
+      "anchor": "entity",
+      "aggregate": true,
+      "truncatable": true
+    },
+    {
+      "field": "失信被执行人",
+      "tags": [
+        "失信",
+        "失信被执行人",
+        "老赖",
+        "失信名单"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_dishonest_info",
+      "anchor": "entity",
+      "history_tool": "get_historical_dishonest",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "被执行人",
+      "tags": [
+        "被执行",
+        "判决债务人",
+        "执行案"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_judgment_debtor_info",
+      "anchor": "entity",
+      "history_tool": "get_historical_judgment_debtor",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "限制高消费",
+      "tags": [
+        "限高",
+        "限制高消费"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_high_consumption_restriction",
+      "anchor": "entity",
+      "history_tool": "get_historical_high_consumption_ban",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "限制出境",
+      "tags": [
+        "限出境",
+        "限境",
+        "限制出境"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_exit_restriction",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "终本案件",
+      "tags": [
+        "终本",
+        "终结本次执行"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_terminated_cases",
+      "anchor": "entity",
+      "history_tool": "get_historical_terminated_cases",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "立案信息",
+      "tags": [
+        "立案",
+        "立案数",
+        "立案日期",
+        "涉诉数量"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_case_filing_info",
+      "anchor": "entity",
+      "aggregate": true,
+      "truncatable": true
+    },
+    {
+      "field": "裁判文书",
+      "tags": [
+        "裁判文书",
+        "裁判",
+        "判决书",
+        "判决文书"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_judicial_documents",
+      "anchor": "entity",
+      "truncatable": true,
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "裁判文书详情",
+      "tags": [
+        "文书详情",
+        "判决结果",
+        "审理进程",
+        "判决内容"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_judicial_document_detail",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "开庭公告",
+      "tags": [
+        "开庭公告",
+        "开庭公告"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_court_notice",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "庭审通知",
+      "tags": [
+        "庭审通知",
+        "开庭时间"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_hearing_notice",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "送达公告",
+      "tags": [
+        "送达公告",
+        "送达文书"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_service_notice",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "法院公告",
+      "tags": [
+        "法院公告",
+        "公告送达"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_service_announcement",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "司法拍卖",
+      "tags": [
+        "司法拍卖",
+        "拍卖标的",
+        "拍卖价",
+        "资产拍卖"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_judicial_auction",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "评估询价",
+      "tags": [
+        "评估询价",
+        "财产评估",
+        "评估价"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_valuation_inquiry",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "经营异常",
+      "tags": [
+        "经营异常",
+        "异常名录",
+        "列入异常"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_business_exception",
+      "anchor": "entity",
+      "history_tool": "get_historical_business_exception",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "严重违法",
+      "tags": [
+        "严重违法",
+        "严重违法失信",
+        "严重违法名单"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_serious_violation",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "行政处罚",
+      "tags": [
+        "行政处罚",
+        "处罚",
+        "行政罚款"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_administrative_penalty",
+      "anchor": "entity",
+      "history_tool": "get_historical_admin_penalty",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "环保处罚",
+      "tags": [
+        "环保处罚",
+        "环保违法",
+        "环保处罚"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_environmental_penalty",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "纪律处分",
+      "tags": [
+        "纪律处分",
+        "行业处分",
+        "自律处分"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_disciplinary_list",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "欠税公告",
+      "tags": [
+        "欠税",
+        "欠税公告",
+        "欠税金额"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_tax_arrears_notice",
+      "anchor": "entity",
+      "history_tool": "get_historical_tax_arrears",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "税务异常",
+      "tags": [
+        "税务异常"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_tax_abnormal",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "税收违法",
+      "tags": [
+        "税收违法",
+        "税务违法",
+        "税务失信"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_tax_violation",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "违约信息",
+      "tags": [
+        "违约",
+        "债务违约"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_default_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "股权冻结",
+      "tags": [
+        "股权冻结",
+        "冻结股权"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_equity_freeze",
+      "anchor": "entity",
+      "history_tool": "get_historical_equity_freeze",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "股权出质",
+      "tags": [
+        "股权出质",
+        "出质股权",
+        "股权质押登记"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_equity_pledge_info",
+      "anchor": "entity",
+      "history_tool": "get_historical_equity_pledge",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "股权质押",
+      "tags": [
+        "股权质押",
+        "上市质押",
+        "平仓风险"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_stock_pledge_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "动产抵押",
+      "tags": [
+        "动产抵押",
+        "动产抵押登记"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_chattel_mortgage_info",
+      "anchor": "entity",
+      "history_tool": "get_historical_chattel_mortgage",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "土地抵押",
+      "tags": [
+        "土地抵押",
+        "土地抵押登记"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_land_mortgage_info",
+      "anchor": "entity",
+      "history_tool": "get_historical_land_mortgage",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "担保信息",
+      "tags": [
+        "担保",
+        "对外担保",
+        "或有负债",
+        "担保金额"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_guarantee_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "破产重整",
+      "tags": [
+        "破产重整",
+        "破产",
+        "重整",
+        "破产申请"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_bankruptcy_reorganization",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "清算信息",
+      "tags": [
+        "清算",
+        "清算组",
+        "清算备案"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_liquidation_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "注销备案",
+      "tags": [
+        "注销备案",
+        "注销"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_cancellation_record_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "简易注销",
+      "tags": [
+        "简易注销",
+        "简易注销公告"
+      ],
+      "server": "qcc-risk",
+      "tool": "get_simple_cancellation_info",
+      "anchor": "entity",
+      "cost": "仅在 get_company_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "商标",
+      "tags": [
+        "商标",
+        "商标持有",
+        "商标注册"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_trademark_info",
+      "anchor": "entity",
+      "paged_needs_apply": true,
+      "history_tool": "get_historical_trademark",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "专利",
+      "tags": [
+        "专利",
+        "专利持有",
+        "发明专利",
+        "专利申请"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_patent_info",
+      "anchor": "entity",
+      "paged_needs_apply": true,
+      "history_tool": "get_historical_patent",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "作品著作权",
+      "tags": [
+        "作品著作权",
+        "作品著作权"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_copyright_work_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "软件著作权",
+      "tags": [
+        "软著",
+        "软件著作权",
+        "计算机软件著作权"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_software_copyright_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "标准信息",
+      "tags": [
+        "标准",
+        "参与标准",
+        "标准制定"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_standard_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "网络服务备案",
+      "tags": [
+        "icp备案",
+        "icp",
+        "app备案",
+        "小程序备案",
+        "公众号",
+        "抖音",
+        "数字资产",
+        "算法备案"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_internet_service_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "知产质押",
+      "tags": [
+        "知产出质",
+        "知产质押",
+        "知识产权质押"
+      ],
+      "server": "qcc-ipr",
+      "tool": "get_ipr_pledge",
+      "anchor": "entity",
+      "history_tool": "get_historical_ipr_pledge",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "招投标",
+      "tags": [
+        "招投标",
+        "中标",
+        "投标",
+        "招标",
+        "招标记录",
+        "中标记录"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_bidding_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "资质证书",
+      "tags": [
+        "资质",
+        "资质证书",
+        "资质等级"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_qualifications",
+      "anchor": "entity"
+    },
+    {
+      "field": "行政许可",
+      "tags": [
+        "行政许可",
+        "许可证",
+        "许可事项"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_administrative_license",
+      "anchor": "entity",
+      "history_tool": "get_historical_admin_license",
+      "cost": "现状 + 历史各 1 次调用；只要现状快照就略过 history_tool（省 1 次调用，且 qcc-history 需企业实名认证）"
+    },
+    {
+      "field": "电信许可",
+      "tags": [
+        "电信许可",
+        "电信经营许可证"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_telecom_license",
+      "anchor": "entity"
+    },
+    {
+      "field": "信用评级",
+      "tags": [
+        "信用评级",
+        "纳税信用",
+        "a级纳税人",
+        "信用等级"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_credit_evaluation",
+      "anchor": "entity"
+    },
+    {
+      "field": "进出口信用",
+      "tags": [
+        "海关信用",
+        "海关信用等级",
+        "高级认证",
+        "一般认证",
+        "进出口信用"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_import_export_credit",
+      "anchor": "entity"
+    },
+    {
+      "field": "招聘信息",
+      "tags": [
+        "招聘",
+        "招聘岗位",
+        "招聘规模",
+        "招人"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_recruitment_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "新闻舆情",
+      "tags": [
+        "舆情",
+        "新闻",
+        "负面舆情",
+        "媒体报道"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_news_sentiment",
+      "anchor": "entity"
+    },
+    {
+      "field": "公告信息",
+      "tags": [
+        "公告",
+        "上市公司公告",
+        "重大事件披露"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_company_announcement",
+      "anchor": "entity"
+    },
+    {
+      "field": "融资历程",
+      "tags": [
+        "融资",
+        "融资历程",
+        "轮次",
+        "投资方"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_financing_records",
+      "anchor": "entity"
+    },
+    {
+      "field": "荣誉信息",
+      "tags": [
+        "荣誉",
+        "荣誉称号",
+        "资质证书背书"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_honor_info",
+      "anchor": "entity"
+    },
+    {
+      "field": "双随机抽查",
+      "tags": [
+        "双随机",
+        "双随机抽查",
+        "抽查检查"
+      ],
+      "server": "qcc-operation",
+      "tool": "get_random_check",
+      "anchor": "entity"
+    },
+    {
+      "field": "历史工商登记",
+      "tags": [
+        "历史工商",
+        "工商历史",
+        "历史注册资本",
+        "历史经营范围"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_registration",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历届法定代表人",
+      "tags": [
+        "历届法代",
+        "法代变更历史",
+        "法代换过几次",
+        "历任法代"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_legal_rep",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历任高管",
+      "tags": [
+        "历任高管",
+        "高管历史",
+        "历史董监高"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_executives",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史股东",
+      "tags": [
+        "历史股东",
+        "历史股东"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_shareholders",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史对外投资",
+      "tags": [
+        "历史投资",
+        "历史对外投资"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_investments",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史失信",
+      "tags": [
+        "历史失信",
+        "曾经的失信",
+        "失信移除",
+        "以前失信"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_dishonest",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史被执行",
+      "tags": [
+        "历史被执行",
+        "以前被执行"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_judgment_debtor",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史限高",
+      "tags": [
+        "历史限高",
+        "以前限高"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_high_consumption_ban",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史经营异常",
+      "tags": [
+        "历史经营异常",
+        "异常名录移出"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_business_exception",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史行政处罚",
+      "tags": [
+        "历史行政处罚",
+        "以前被罚"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_admin_penalty",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史行政许可",
+      "tags": [
+        "历史行政许可",
+        "许可证被吊销"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_admin_license",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史欠税",
+      "tags": [
+        "历史欠税",
+        "以前的欠税"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_tax_arrears",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史股权冻结",
+      "tags": [
+        "历史股权冻结",
+        "股权已解冻"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_equity_freeze",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史股权出质",
+      "tags": [
+        "历史股权出质",
+        "出质已解除"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_equity_pledge",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史动产抵押",
+      "tags": [
+        "历史动产抵押",
+        "动产已解除"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_chattel_mortgage",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史土地抵押",
+      "tags": [
+        "历史土地抵押",
+        "土地已解除"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_land_mortgage",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史知产质押",
+      "tags": [
+        "历史知产质押",
+        "知产质押已解除"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_ipr_pledge",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史商标",
+      "tags": [
+        "历史商标",
+        "商标历史过户"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_trademark",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史专利",
+      "tags": [
+        "历史专利",
+        "专利转让历史"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_patent",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "历史终本案件",
+      "tags": [
+        "历史终本",
+        "终本案件结案"
+      ],
+      "server": "qcc-history",
+      "tool": "get_historical_terminated_cases",
+      "anchor": "entity",
+      "gated": "enterprise_auth"
+    },
+    {
+      "field": "高管职务",
+      "tags": [
+        "高管职务",
+        "董监高职务"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_positions",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "法代任职企业",
+      "tags": [
+        "法代任职",
+        "法人任职企业",
+        "担任法代的企业"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_legal_rep_roles",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管投资任职",
+      "tags": [
+        "高管投资任职",
+        "投资人任职"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_investments",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "控制企业",
+      "tags": [
+        "控制企业",
+        "控制的企业",
+        "名下企业"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_controlled_companies",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "关联企业",
+      "tags": [
+        "关联企业",
+        "关联企业清单"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_related_companies",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "历任合伙人",
+      "tags": [
+        "历任合伙人",
+        "合伙人"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_partners",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "历任任职",
+      "tags": [
+        "历任任职",
+        "高管任职历史"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_positions",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "历届法代任职",
+      "tags": [
+        "历届法代任职",
+        "法代任职历史"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_legal_rep_roles",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "历史投资任职",
+      "tags": [
+        "历史投资任职"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_investments",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管个人风险扫描",
+      "tags": [
+        "个人风险扫描",
+        "高管风险扫描",
+        "高管风险面",
+        "18项个人风险"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_risk_scan",
+      "anchor": "entity+person",
+      "gated": "person_name"
+    },
+    {
+      "field": "高管关联风险扫描",
+      "tags": [
+        "高管关联风险",
+        "个人关联风险"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_related_risk_scan",
+      "anchor": "entity+person",
+      "gated": "person_name"
+    },
+    {
+      "field": "高管失信",
+      "tags": [
+        "高管失信",
+        "法代失信",
+        "个人失信"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_dishonest",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管被执行",
+      "tags": [
+        "高管被执行",
+        "个人被执行"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_judgment_debtor",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管限高",
+      "tags": [
+        "高管限高",
+        "个人限高"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_high_consumption_ban",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管限出境",
+      "tags": [
+        "高管限出境",
+        "个人限出境"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_exit_restriction",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管裁判文书",
+      "tags": [
+        "高管裁判文书",
+        "个人裁判"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_judicial_docs",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管立案",
+      "tags": [
+        "高管立案",
+        "个人立案"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_case_filing",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管开庭公告",
+      "tags": [
+        "高管开庭公告",
+        "个人开庭公告"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_court_notice",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管庭审通知",
+      "tags": [
+        "高管庭审通知",
+        "个人庭审通知"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_hearing_notice",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管送达公告",
+      "tags": [
+        "高管送达公告",
+        "个人送达"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_service_notice",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管终本案件",
+      "tags": [
+        "高管终本",
+        "个人终本"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_terminated_cases",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管诉前调解",
+      "tags": [
+        "高管诉前调解",
+        "个人诉前调解"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_pre_litigation_mediation",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管行政处罚",
+      "tags": [
+        "高管行政处罚",
+        "个人行政处罚"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_admin_penalty",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管股权冻结",
+      "tags": [
+        "高管股权冻结",
+        "个人股权冻结"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_equity_freeze",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管股权出质",
+      "tags": [
+        "高管股权出质",
+        "个人股权出质"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_equity_pledge",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管股权质押",
+      "tags": [
+        "高管股权质押",
+        "个人股权质押"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_stock_pledge",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管税务违法",
+      "tags": [
+        "高管税务违法",
+        "个人税务违法"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_tax_violation",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管评估询价",
+      "tags": [
+        "高管评估询价",
+        "个人财产评估"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_valuation_inquiry",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管财产悬赏",
+      "tags": [
+        "财产悬赏",
+        "悬赏公告",
+        "财产线索"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_property_reward_notice",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管历史失信",
+      "tags": [
+        "高管历史失信",
+        "个人历史失信"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_dishonest",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管历史被执行",
+      "tags": [
+        "高管历史被执行",
+        "个人历史被执行"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_historical_judgment_debtor",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "高管受益所有人",
+      "tags": [
+        "高管ubo",
+        "个人受益所有人"
+      ],
+      "server": "qcc-executive",
+      "tool": "get_executive_beneficial_owner",
+      "anchor": "entity+person",
+      "gated": "person_name",
+      "cost": "仅在 get_executive_risk_scan 对应维度 count > 0 时下钻（count = 0 时省 1 次调用）"
+    },
+    {
+      "field": "法规检索",
+      "tags": [
+        "法规",
+        "法律法规",
+        "法律条文",
+        "合规依据",
+        "法条"
+      ],
+      "server": "qcc-legal-regulation",
+      "tool": "get_legal_regulation_search",
+      "anchor": "keyword"
+    },
+    {
+      "field": "类案检索",
+      "tags": [
+        "类案",
+        "判例",
+        "同类案例",
+        "类案参考"
+      ],
+      "server": "qcc-legal-case",
+      "tool": "get_judicial_case_search",
+      "anchor": "keyword"
+    },
+    {
+      "field": "立案检索",
+      "tags": [
+        "立案检索",
+        "跨主体立案",
+        "案号检索",
+        "按案号查",
+        "类案立案"
+      ],
+      "server": "qcc-legal-case",
+      "tool": "get_judicial_case_search",
+      "anchor": "keyword"
+    },
+    {
+      "field": "招投标检索",
+      "tags": [
+        "标讯检索",
+        "招标公告",
+        "找招标",
+        "搜索标书",
+        "按关键词找中标"
+      ],
+      "server": "qcc-tender",
+      "tool": "search_tenders",
+      "anchor": "keyword"
+    },
+    {
+      "field": "远端文档解析",
+      "tags": [
+        "解析在线文档",
+        "url解析",
+        "链接解析",
+        "远程文档"
+      ],
+      "server": "qcc-document",
+      "tool": "parse_document",
+      "anchor": "url",
+      "gated": "remote_url"
+    },
+    {
+      "field": "远端解析结果",
+      "tags": [
+        "远端解析结果",
+        "文档解析结果"
+      ],
+      "server": "qcc-document",
+      "tool": "get_parse_result",
+      "anchor": "url",
+      "gated": "remote_url"
+    },
+    {
+      "field": "本地文档解析",
+      "tags": [
+        "本地文件解析",
+        "解析pdf",
+        "解析财报",
+        "本地文档",
+        "文件解析"
+      ],
+      "server": "qcc-document-mcp",
+      "tool": "parse_document",
+      "anchor": "file_path",
+      "gated": "local_stdio"
+    },
+    {
+      "field": "本地解析结果",
+      "tags": [
+        "本地解析结果"
+      ],
+      "server": "qcc-document-mcp",
+      "tool": "get_parse_result",
+      "anchor": "file_path",
+      "gated": "local_stdio"
+    }
+  ],
+  "packages": [
+    {
+      "id": "entity_anchor",
+      "name": "实体锚定（强制前置）",
+      "servers": [
+        "qcc-company"
+      ],
+      "tools": [
+        "get_company_by_query",
+        "verify_company_accuracy",
+        "get_company_registration_info"
+      ],
+      "cover": [
+        "企业搜索",
+        "企业名称核实",
+        "统一社会信用代码"
+      ],
+      "note": "任何计划的 Step 0；品牌名/简称必须先消歧"
+    },
+    {
+      "id": "profile_onepager",
+      "name": "一页纸画像",
+      "servers": [
+        "qcc-company",
+        "qcc-operation",
+        "qcc-ipr",
+        "qcc-risk"
+      ],
+      "tools": [
+        "get_company_registration_info",
+        "get_company_profile",
+        "get_shareholder_info",
+        "get_actual_controller",
+        "get_key_personnel",
+        "get_financial_data",
+        "get_annual_reports",
+        "get_bidding_info",
+        "get_recruitment_info",
+        "get_news_sentiment",
+        "get_financing_records",
+        "get_credit_evaluation",
+        "get_patent_info",
+        "get_trademark_info",
+        "get_software_copyright_info",
+        "get_internet_service_info",
+        "get_ipr_pledge",
+        "get_company_risk_scan"
+      ],
+      "cover": [
+        "企业简介",
+        "股东信息",
+        "实际控制人",
+        "主要人员",
+        "财务数据",
+        "年度信息",
+        "招投标",
+        "招聘信息",
+        "新闻舆情",
+        "融资历程",
+        "信用评级",
+        "专利",
+        "商标",
+        "软件著作权",
+        "网络服务备案",
+        "知产质押",
+        "风险扫描"
+      ],
+      "note": "风险只到分诊层；需要明细时对 count>0 的维度按 risk_drill 下钻"
+    },
+    {
+      "id": "risk_drill",
+      "name": "尽调风控深挖（先扫后钻）",
+      "servers": [
+        "qcc-risk"
+      ],
+      "tools": [
+        "get_company_risk_scan",
+        "get_dishonest_info",
+        "get_judgment_debtor_info",
+        "get_high_consumption_restriction",
+        "get_exit_restriction",
+        "get_terminated_cases",
+        "get_judicial_documents",
+        "get_judicial_document_detail",
+        "get_court_notice",
+        "get_hearing_notice",
+        "get_service_notice",
+        "get_service_announcement",
+        "get_judicial_auction",
+        "get_valuation_inquiry",
+        "get_business_exception",
+        "get_serious_violation",
+        "get_administrative_penalty",
+        "get_environmental_penalty",
+        "get_disciplinary_list",
+        "get_tax_arrears_notice",
+        "get_tax_abnormal",
+        "get_tax_violation",
+        "get_default_info",
+        "get_equity_freeze",
+        "get_equity_pledge_info",
+        "get_stock_pledge_info",
+        "get_chattel_mortgage_info",
+        "get_land_mortgage_info",
+        "get_guarantee_info",
+        "get_bankruptcy_reorganization",
+        "get_liquidation_info",
+        "get_cancellation_record_info",
+        "get_simple_cancellation_info"
+      ],
+      "cover": [
+        "风险扫描",
+        "失信被执行人",
+        "被执行人",
+        "限制高消费",
+        "限制出境",
+        "终本案件",
+        "裁判文书",
+        "裁判文书详情",
+        "开庭公告",
+        "庭审通知",
+        "送达公告",
+        "法院公告",
+        "司法拍卖",
+        "评估询价",
+        "经营异常",
+        "严重违法",
+        "行政处罚",
+        "环保处罚",
+        "纪律处分",
+        "欠税公告",
+        "税务异常",
+        "税收违法",
+        "违约信息",
+        "股权冻结",
+        "股权出质",
+        "股权质押",
+        "动产抵押",
+        "土地抵押",
+        "担保信息",
+        "破产重整",
+        "清算信息",
+        "注销备案",
+        "简易注销"
+      ],
+      "note": "扫描工具必须第一个调用；只对命中维度下钻。禁止跳过扫描逐个调用明细"
+    },
+    {
+      "id": "history_whitewash",
+      "name": "历史存档洗白识别",
+      "servers": [
+        "qcc-history"
+      ],
+      "tools": [
+        "get_historical_registration",
+        "get_historical_legal_rep",
+        "get_historical_executives",
+        "get_historical_shareholders",
+        "get_historical_investments",
+        "get_historical_dishonest",
+        "get_historical_judgment_debtor",
+        "get_historical_high_consumption_ban",
+        "get_historical_business_exception",
+        "get_historical_admin_penalty",
+        "get_historical_admin_license",
+        "get_historical_tax_arrears",
+        "get_historical_equity_freeze",
+        "get_historical_equity_pledge",
+        "get_historical_chattel_mortgage",
+        "get_historical_land_mortgage",
+        "get_historical_ipr_pledge",
+        "get_historical_trademark",
+        "get_historical_patent",
+        "get_historical_terminated_cases"
+      ],
+      "cover": [
+        "历史工商登记",
+        "历届法定代表人",
+        "历任高管",
+        "历史股东",
+        "历史对外投资",
+        "历史失信",
+        "历史被执行",
+        "历史限高",
+        "历史经营异常",
+        "历史行政处罚",
+        "历史行政许可",
+        "历史欠税",
+        "历史股权冻结",
+        "历史股权出质",
+        "历史动产抵押",
+        "历史土地抵押",
+        "历史知产质押",
+        "历史商标",
+        "历史专利",
+        "历史终本案件"
+      ],
+      "gated": "enterprise_auth",
+      "note": "未开通时跳过；风险分级上限降至 C"
+    },
+    {
+      "id": "related_graph",
+      "name": "法人关联公司图谱",
+      "servers": [
+        "qcc-company",
+        "qcc-executive",
+        "qcc-history",
+        "qcc-risk"
+      ],
+      "tools": [
+        "get_shareholder_info",
+        "get_actual_controller",
+        "get_external_investments",
+        "get_branches",
+        "get_change_records",
+        "get_key_personnel",
+        "get_executive_legal_rep_roles",
+        "get_executive_investments",
+        "get_executive_related_companies",
+        "get_executive_historical_partners",
+        "get_historical_shareholders",
+        "get_historical_legal_rep",
+        "get_historical_executives",
+        "get_historical_investments",
+        "get_company_related_risk_scan"
+      ],
+      "cover": [
+        "股东信息",
+        "实际控制人",
+        "对外投资",
+        "分支机构",
+        "工商变更记录",
+        "主要人员",
+        "法代任职企业",
+        "高管投资任职",
+        "关联企业",
+        "历任合伙人",
+        "历史股东",
+        "历届法定代表人",
+        "历任高管",
+        "历史对外投资",
+        "关联企业风险"
+      ],
+      "gated": "enterprise_auth",
+      "note": "Step 3 需人名双锚；qcc-history 未开通时降级为企业-企业单部图"
+    },
+    {
+      "id": "executive_profile",
+      "name": "董监高个人风险画像",
+      "servers": [
+        "qcc-executive",
+        "qcc-risk"
+      ],
+      "tools": [
+        "get_executive_risk_scan",
+        "get_executive_related_risk_scan",
+        "get_executive_dishonest",
+        "get_executive_judgment_debtor",
+        "get_executive_high_consumption_ban",
+        "get_executive_exit_restriction",
+        "get_executive_controlled_companies",
+        "get_executive_positions",
+        "get_executive_judicial_docs",
+        "get_company_risk_scan",
+        "get_company_related_risk_scan"
+      ],
+      "cover": [
+        "高管职务",
+        "控制企业",
+        "关联企业",
+        "高管个人风险扫描",
+        "高管关联风险扫描",
+        "高管失信",
+        "高管被执行",
+        "高管限高",
+        "高管限出境",
+        "高管裁判文书",
+        "关联企业风险"
+      ],
+      "gated": "person_name",
+      "note": "必须先有企业全称 + 人名双锚；人名从 get_key_personnel / get_actual_controller 取"
+    },
+    {
+      "id": "cross_entity",
+      "name": "跨主体检索",
+      "servers": [
+        "qcc-legal-regulation",
+        "qcc-legal-case",
+        "qcc-tender"
+      ],
+      "tools": [
+        "get_legal_regulation_search",
+        "get_judicial_case_search",
+        "get_case_filing_info",
+        "search_tenders"
+      ],
+      "cover": [
+        "法规检索",
+        "类案检索",
+        "立案检索",
+        "招投标检索"
+      ],
+      "note": "以主题/案由为锚，非企业为锚；官方 27 个 SKILL 未直接引用这 4 个 server，可独立调用"
+    },
+    {
+      "id": "document_parse",
+      "name": "长文档解析",
+      "servers": [
+        "qcc-document",
+        "qcc-document-mcp"
+      ],
+      "tools": [
+        "parse_document",
+        "get_parse_result"
+      ],
+      "cover": [
+        "远端文档解析",
+        "远端解析结果",
+        "本地文档解析",
+        "本地解析结果"
+      ],
+      "note": "远端需公网 URL；本机文件走 stdio，需 Node 20+"
+    }
+  ],
+  "conflicts": [
+    {
+      "tool": "get_case_filing_info",
+      "variants": [
+        {
+          "server": "qcc-risk",
+          "anchor": "entity",
+          "meaning": "以企业为锚的立案信息（立案量 / 案由分布 / 最近立案日期）"
+        }
+      ],
+      "related": [
+        {
+          "server": "qcc-legal-case",
+          "tool": "get_judicial_case_search",
+          "anchor": "keyword",
+          "meaning": "跨主体类案检索，按案由或关键词"
+        }
+      ],
+      "rule": "不是跨 Server 重名，而是语义相邻、禁止混用：查「这家公司的立案量」用 qcc-risk.get_case_filing_info，查「某案由有哪些案例」用 qcc-legal-case.get_judicial_case_search"
+    },
+    {
+      "tool": "parse_document",
+      "variants": [
+        {
+          "server": "qcc-document",
+          "anchor": "url",
+          "meaning": "远端解析公网 URL"
+        },
+        {
+          "server": "qcc-document-mcp",
+          "anchor": "file_path",
+          "meaning": "本地 stdio 解析本机文件"
+        }
+      ],
+      "rule": "按输入形态选择：有 URL 走 qcc-document，有本机文件走 qcc-document-mcp"
+    },
+    {
+      "tool": "get_parse_result",
+      "variants": [
+        {
+          "server": "qcc-document",
+          "meaning": "远端解析结果"
+        },
+        {
+          "server": "qcc-document-mcp",
+          "meaning": "本地解析结果"
+        }
+      ],
+      "rule": "与 parse_document 成对使用，Task ID 由对应的 parse_document 返回"
+    },
+    {
+      "tool": "get_change_records",
+      "variants": [
+        {
+          "server": "qcc-company",
+          "meaning": "变更事件流"
+        },
+        {
+          "server": "qcc-history",
+          "meaning": "get_historical_* 分维度历史存档"
+        }
+      ],
+      "rule": "语义重叠但不等价，不可互相替代"
+    },
+    {
+      "tool": "search_tenders",
+      "variants": [
+        {
+          "server": "qcc-tender",
+          "anchor": "keyword",
+          "meaning": "全国标讯检索"
+        },
+        {
+          "server": "qcc-operation",
+          "tool": "get_bidding_info",
+          "meaning": "以企业为锚的招投标记录"
+        }
+      ],
+      "rule": "查「这家公司中标了什么」用 qcc-operation.get_bidding_info；查「某主题有哪些标」用 qcc-tender.search_tenders"
+    }
+  ],
+  "ontology_hooks": {
+    "purpose": "取数之后用本体论推理挖风险。下面只定义关系与推理入口，规则细节见 SKILL.md 第六节。",
+    "entities": {
+      "Enterprise": [
+        "entity_id(=18位统一社会信用代码)",
+        "full_name",
+        "registration_status",
+        "legal_rep",
+        "actual_controller",
+        "industry",
+        "source_server"
+      ],
+      "Person": [
+        "person_name",
+        "role(法代/董事/监事/高管/股东/实控人)",
+        "source_server"
+      ]
+    },
+    "relations": {
+      "持股": {
+        "from": "Enterprise|Person",
+        "to": "Enterprise",
+        "weight": "持股比例",
+        "tools": [
+          "get_shareholder_info",
+          "get_historical_shareholders"
+        ]
+      },
+      "控制": {
+        "from": "Person|Enterprise",
+        "to": "Enterprise",
+        "weight": "穿透层级",
+        "tools": [
+          "get_actual_controller",
+          "get_executive_controlled_companies"
+        ]
+      },
+      "任职": {
+        "from": "Person",
+        "to": "Enterprise",
+        "weight": "职务",
+        "tools": [
+          "get_key_personnel",
+          "get_executive_positions",
+          "get_historical_executives"
+        ]
+      },
+      "同一法代": {
+        "from": "Person",
+        "to": "Enterprise",
+        "weight": "任职区间",
+        "tools": [
+          "get_executive_legal_rep_roles",
+          "get_historical_legal_rep"
+        ]
+      },
+      "共同股东": {
+        "from": "Person|Enterprise",
+        "to": "Enterprise",
+        "weight": "共同持股比例",
+        "tools": [
+          "get_shareholder_info",
+          "get_historical_shareholders"
+        ]
+      },
+      "投资": {
+        "from": "Enterprise",
+        "to": "Enterprise",
+        "weight": "持股比例",
+        "tools": [
+          "get_external_investments",
+          "get_historical_investments"
+        ]
+      },
+      "合伙": {
+        "from": "Person",
+        "to": "Person|Enterprise",
+        "weight": "任职区间",
+        "tools": [
+          "get_executive_historical_partners"
+        ]
+      },
+      "分支": {
+        "from": "Enterprise",
+        "to": "Enterprise",
+        "weight": null,
+        "tools": [
+          "get_branches"
+        ]
+      },
+      "担保": {
+        "from": "Enterprise",
+        "to": "Enterprise",
+        "weight": "担保金额",
+        "tools": [
+          "get_guarantee_info",
+          "get_equity_pledge_info",
+          "get_stock_pledge_info"
+        ]
+      },
+      "资产限制": {
+        "from": "Enterprise",
+        "to": "Asset",
+        "weight": "冻结/质押份额",
+        "tools": [
+          "get_equity_freeze",
+          "get_chattel_mortgage_info",
+          "get_land_mortgage_info",
+          "get_judicial_auction"
+        ]
+      }
+    },
+    "risk_inference": [
+      {
+        "rule": "关联破产传导",
+        "trigger": "实控人控制的多家企业中任一家处于破产重整/清算",
+        "evidence_fields": [
+          "实际控制人",
+          "控制企业",
+          "破产重整",
+          "清算信息"
+        ],
+        "effect": "关联企业风险 +0.3×控制权比例"
+      },
+      {
+        "rule": "壳公司识别",
+        "trigger": "法代变更≥3次/2年 且 注册地址变更≥2次 且 参保人数=0",
+        "evidence_fields": [
+          "历届法定代表人",
+          "工商变更记录",
+          "年度信息"
+        ],
+        "effect": "风险等级 → D"
+      },
+      {
+        "rule": "风险出清（洗白）",
+        "trigger": "当前视图干净但历史有失信/被执行/经营异常，且集中在最近 12~24 个月",
+        "evidence_fields": [
+          "失信被执行人",
+          "被执行人",
+          "经营异常",
+          "历史工商登记"
+        ],
+        "effect": "标注疑似风险出清，需关注时效；分级上限 C"
+      },
+      {
+        "rule": "股东风险传导",
+        "trigger": "持股股东存在失信/被执行/限高",
+        "evidence_fields": [
+          "股东信息",
+          "失信被执行人",
+          "被执行人",
+          "限制高消费"
+        ],
+        "effect": "风险传导概率 × 持股比例"
+      },
+      {
+        "rule": "系统性风险主体",
+        "trigger": "同一自然人控制的 N 家企业中 M 家存在终局风险",
+        "evidence_fields": [
+          "控制企业",
+          "关联企业",
+          "高管个人风险扫描"
+        ],
+        "effect": "判定为系统性风险主体，禁止只评估单家"
+      },
+      {
+        "rule": "资不抵债",
+        "trigger": "资产负债率 > 100%",
+        "evidence_fields": [
+          "资产负债率"
+        ],
+        "effect": "风险等级 → C 及以上"
+      },
+      {
+        "rule": "知产腾挪",
+        "trigger": "商标/专利集中过户或知产质押",
+        "evidence_fields": [
+          "商标",
+          "专利",
+          "知产质押",
+          "历史商标"
+        ],
+        "effect": "关注资产腾挪与关联交易"
+      },
+      {
+        "rule": "经营断崖",
+        "trigger": "招聘规模骤降 或 舆情集中负面 或 资质过期",
+        "evidence_fields": [
+          "招聘信息",
+          "新闻舆情",
+          "资质证书"
+        ],
+        "effect": "经营活力降级"
+      },
+      {
+        "rule": "资质失效",
+        "trigger": "行政许可/资质证书过期或被吊销",
+        "evidence_fields": [
+          "行政许可",
+          "资质证书"
+        ],
+        "effect": "准入资格失效，一票否决"
+      }
+    ],
+    "edge_fields": [
+      "source",
+      "target",
+      "relation_type",
+      "weight",
+      "period_start",
+      "period_end",
+      "is_historical",
+      "evidence_tool(=server.tool)",
+      "evidence_date",
+      "risk_flags",
+      "risk_count",
+      "risk_detail_drilled",
+      "negative_conclusion",
+      "summary_quote",
+      "truncation_hint"
+    ]
+  },
+  "official_skills": {
+    "note": "官方 4 客群 27 个 SKILL 由「业务规则 + MCP 工具清单 + 报告输出格式」构成，负责行业报告模板；本索引负责取数路由。需要模板时 fetch 官方 URL，禁止自行翻译猜测 SKILL ID。",
+    "groups": {
+      "banking": {
+        "label": "银行·合规风控",
+        "readme": "https://agent.qcc.com/skill/v1/banking/README.md",
+        "skill_url": "https://agent.qcc.com/skill/v1/banking/<skill-id>/SKILL.md"
+      },
+      "invest": {
+        "label": "投资·尽调",
+        "readme": "https://agent.qcc.com/skill/v1/invest/README.md",
+        "skill_url": "https://agent.qcc.com/skill/v1/invest/<skill-id>/SKILL.md"
+      },
+      "legal": {
+        "label": "法律·法务",
+        "readme": "https://agent.qcc.com/skill/v1/legal/README.md",
+        "skill_url": "https://agent.qcc.com/skill/v1/legal/<skill-id>/SKILL.md"
+      },
+      "supply": {
+        "label": "采购·供应链",
+        "readme": "https://agent.qcc.com/skill/v1/supply/README.md",
+        "skill_url": "https://agent.qcc.com/skill/v1/supply/<skill-id>/SKILL.md"
+      }
+    },
+    "full_list": {
+      "banking": [
+        "kyb-verification-qcc",
+        "litigation-analysis-qcc",
+        "credit-due-diligence-qcc",
+        "counterparty-risk-qcc",
+        "ubo-screening-qcc",
+        "trade-finance-compliance-qcc",
+        "credit-monitoring-qcc",
+        "equity-structure-qcc",
+        "executive-background-qcc",
+        "business-health-scan-qcc",
+        "guarantor-check-qcc",
+        "bankruptcy-monitor-qcc"
+      ],
+      "invest": [
+        "ic-memo-qcc",
+        "history-evolution-qcc",
+        "strip-profile-qcc",
+        "competitor-analysis-qcc",
+        "fundraising-tracker-qcc",
+        "ip-asset-inventory-qcc"
+      ],
+      "legal": [
+        "contract-review",
+        "contract-party-check-qcc",
+        "labor-compliance",
+        "ip-infringement-alert",
+        "debt-recovery-assessment-qcc",
+        "license-validation"
+      ],
+      "supply": [
+        "vendor-assess",
+        "supplier-annual-check-qcc",
+        "new-supplier-screening"
+      ]
+    },
+    "unreferenced_servers": [
+      "qcc-legal-regulation",
+      "qcc-legal-case",
+      "qcc-tender",
+      "qcc-document"
+    ]
+  }
+}

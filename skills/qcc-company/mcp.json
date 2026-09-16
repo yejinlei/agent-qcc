@@ -1,10 +1,119 @@
 {
-    "mcpServers":
-    {
-        "qcc-company":
-        {
+    "mcpServers": {
+        "qcc-company": {
             "type": "streamableHttp",
-            "url": "https://agent.qcc.com/mcp/company/stream"
+            "url": "https://agent.qcc.com/mcp/company/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "企业基座：工商登记、股东、实控人、董监高、财务、对外投资。所有场景的第一步（实体锚定）。",
+            "auth_gated": false,
+            "paged": false
+        },
+        "qcc-risk": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/risk/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "风控大脑：失信 / 被执行 / 限高 / 裁判 / 处罚 / 冻结 / 破产 / 担保 / 税务等风险维度，先扫后钻。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-ipr": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/ipr/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "知产引擎：商标 / 专利 / 著作权 / 软件著作权 / 标准 / ICP 与数字资产矩阵 / 知产质押。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-operation": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/operation/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "经营罗盘：招投标 / 资质 / 信用评价 / 招聘 / 舆情 / 融资 / 荣誉 / 双随机 / 进出口信用。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-history": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/history/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "历史存档：历史股东 / 历届法代 / 歴任高管 / 历史失信 / 历史股权冻结等时间维度穿透，用于洗白与治理稳定性识别。",
+            "auth_gated": true,
+            "paged": true
+        },
+        "qcc-executive": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/executive/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "董监高画像：以人查风险。双锚参数（企业全称 + 董监高姓名），个人司法、关联企业穿透、UBO。",
+            "auth_gated": false,
+            "paged": true,
+            "requires_person": true
+        },
+        "qcc-legal-regulation": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/regulation/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "法规检索：法律法规全文检索，按关键词或案由定位条文。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-legal-case": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/case/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "司法检索：类案检索与立案信息，跨主体（不限于单家企业）的裁判文书面。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-tender": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/tender/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "标讯检索：按关键词 / 采购方 / 中标方检索全国招投标公告。",
+            "auth_gated": false,
+            "paged": true
+        },
+        "qcc-document": {
+            "type": "streamableHttp",
+            "url": "https://agent.qcc.com/mcp/document/stream",
+            "headers": {
+                "Authorization": "Bearer YOUR_API_KEY"
+            },
+            "description": "远端文档解析：接受公网可访问的 URL，异步返回 TASK_ID 后再取解析结果。",
+            "auth_gated": false,
+            "paged": false
+        },
+        "qcc-document-mcp": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "qcc-document-mcp"
+            ],
+            "env": {
+                "QCC_DOCUMENT_AUTHORIZATION": "Bearer YOUR_API_KEY"
+            },
+            "description": "本地文档解析（唯一非 streamableHttp 入口，需 Node 20+）：解析本机文件（财报 / 合同 / 裁判文书 PDF 等）。",
+            "auth_gated": false,
+            "paged": false
         }
     }
 }
