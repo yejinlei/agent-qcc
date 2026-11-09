@@ -37,7 +37,8 @@ def _banner(skill_name: str, offline: bool, model: str) -> None:
             f"[bold]agent-qcc[/bold] v{__version__} — 4R+1 企业尽调 Agent\n"
             f"skill: [cyan]{skill_name}[/cyan]  model: [cyan]{model}[/cyan]  "
             f"mode: [cyan]{'offline' if offline else 'live'}[/cyan]\n"
-            f"[dim]Route → Reason → Retrieve → Reflect → Respond[/dim]",
+            f"[dim]Route → Reason → Retrieve → Reflect → Respond[/dim]\n"
+            f"[dim]自然语言 → 4R+1 graph；/xxx → skill slash 命令（/qcc-help 查看）[/dim]",
             title="企业尽调 Agent",
             border_style="cyan",
         )
@@ -73,6 +74,88 @@ def _render(state: dict) -> None:
     text = str(answer[-1].content) if answer else "(no answer)"
     console.print()
     console.print(Markdown(text))
+
+
+def _render_slash(result: dict) -> None:
+    """渲染 slash 命令结果（skill 的 handler 返回纯 dict，无 markdown）。"""
+    import json
+
+    from rich.console import Console
+    from rich.syntax import Syntax
+    from rich.table import Table
+    from rich.text import Text
+
+    console = Console()
+    command = str(result.get("command") or "/?")
+    ok = bool(result.get("ok"))
+    console.print(
+        f"[dim]slash:[/dim] [bold]{command}[/bold] · "
+        + ("[green]ok[/green]" if ok else "[red]failed[/red]")
+    )
+
+    # 错误信息走 Text：内容可能含路径，交给 markup 解析器会把 `[` 当标签
+    if not ok:
+        console.print(Text(str(result.get("error") or "unknown error"), style="red"))
+        if result.get("hint"):
+            console.print(Text(str(result["hint"]), style="dim"))
+        return
+
+    commands = result.get("commands")
+    if commands:
+        table = Table(title="Slash 命令")
+        table.add_column("命令", style="cyan", no_wrap=True)
+        table.add_column("分类")
+        table.add_column("说明")
+        table.add_column("用法", style="dim")
+        for item in commands:
+            table.add_row(
+                item.get("slash", ""),
+                item.get("category", ""),
+                item.get("label", ""),
+                item.get("usage", ""),
+            )
+        console.print(table)
+        return
+
+    body = {k: v for k, v in result.items() if k not in {"command", "ok", "handler", "servers"}}
+    console.print(
+        Syntax(
+            json.dumps(body, ensure_ascii=False, indent=2, default=str),
+            "json",
+            word_wrap=True,
+        )
+    )
+
+
+def _slash_shortcut(question: str) -> bool:
+    """``/xxx`` 直接走 skill 的 slash 分发器，返回 True 表示本轮已处理。
+
+    单独拆出来是为了让单轮 ``chat`` 在构建 graph 之前就短路：slash 命令只查
+    DuckDB / 知识图谱，不需要 LLM，也不该因为模型或 skill 配置缺失而失败。
+    """
+    from .slash_router import is_slash_command, try_dispatch_slash
+
+    if not is_slash_command(question):
+        return False
+    result = try_dispatch_slash(question)
+    if result is None:
+        return False
+    _render_slash(result)
+    return True
+
+
+def _turn(graph, question: str, *, thread_id: str) -> dict | None:
+    """一轮输入的双通道路由。
+
+    ``/xxx`` → skill 的 slash 分发器（直接查 DuckDB / KG，不进 LLM）；
+    其余 → 原有 4R+1 graph。返回 graph state，slash 通道返回 None。
+    """
+    if _slash_shortcut(question):
+        return None
+
+    state = _run(graph, question, thread_id=thread_id)
+    _render(state)
+    return state
 
 
 def _fail(message: str) -> NoReturn:
@@ -174,16 +257,18 @@ def chat(
     thread: str = typer.Option("cli", "--thread", help="会话线程 ID"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
-    """单轮问答（离线模式无需 API Key）."""
+    """单轮问答（自然语言走 4R+1，``/xxx`` 走 skill 的 slash 命令）."""
+    if _slash_shortcut(question):
+        return
+
     graph, _checkpointer, pipeline, skill, settings = _build_or_fail()
     _banner(skill.name, settings.offline, settings.model_name)
     if not settings.offline:
         console_note(
             f"[yellow]live 模式[/yellow]：将向 {pipeline.client.url} 发起真实连接器调用"
         )
-    state = _run(graph, question, thread_id=thread)
-    _render(state)
-    if verbose:
+    state = _turn(graph, question, thread_id=thread)
+    if verbose and state is not None:
         import json
 
         console_note("[dim]" + json.dumps(state, ensure_ascii=False, default=str)[:2000] + "[/dim]")
@@ -205,8 +290,23 @@ def tui(
             break
         if not question:
             continue
-        _render(_run(graph, question, thread_id=thread))
+        _turn(graph, question, thread_id=thread)
     typer.echo("已退出。")
+
+
+@app.command("commands")
+def slash_commands() -> None:
+    """列出 skill 提供的全部 slash 命令."""
+    from .slash_router import list_slash_commands
+
+    commands = list_slash_commands()
+    if not commands:
+        _fail(
+            "无法读取 slash 命令注册表。\n"
+            f"期望的文件：{Path('skills/qcc-super/references/slash_registry.json')}，"
+            "以及 skills/qcc-super/scripts/slash.py 的 dispatch()。"
+        )
+    _render_slash({"ok": True, "command": "/qcc-help", "commands": commands})
 
 
 @app.command()

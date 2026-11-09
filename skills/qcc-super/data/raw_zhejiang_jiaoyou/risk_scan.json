@@ -1,0 +1,183 @@
+{
+  "企业名称": "浙江胶友科技有限公司",
+  "摘要": "已全量扫描 35 项风险因子：0 项有记录、35 项无记录。",
+  "有记录因子数": 0,
+  "无记录因子数": 35,
+  "风险因子扫描": [
+    {
+      "风险因子": "失信信息",
+      "条目数": 0,
+      "明细工具": "get_dishonest_info"
+    },
+    {
+      "风险因子": "被执行人",
+      "条目数": 0,
+      "明细工具": "get_judgment_debtor_info"
+    },
+    {
+      "风险因子": "限制高消费",
+      "条目数": 0,
+      "明细工具": "get_high_consumption_restriction"
+    },
+    {
+      "风险因子": "终本案件",
+      "条目数": 0,
+      "明细工具": "get_terminated_cases"
+    },
+    {
+      "风险因子": "裁判文书",
+      "条目数": 0,
+      "明细工具": "get_judicial_documents"
+    },
+    {
+      "风险因子": "立案信息",
+      "条目数": 0,
+      "明细工具": "get_case_filing_info"
+    },
+    {
+      "风险因子": "开庭公告",
+      "条目数": 0,
+      "明细工具": "get_hearing_notice"
+    },
+    {
+      "风险因子": "法院公告",
+      "条目数": 0,
+      "明细工具": "get_court_notice"
+    },
+    {
+      "风险因子": "送达公告",
+      "条目数": 0,
+      "明细工具": "get_service_notice"
+    },
+    {
+      "风险因子": "破产重整",
+      "条目数": 0,
+      "明细工具": "get_bankruptcy_reorganization"
+    },
+    {
+      "风险因子": "股权冻结",
+      "条目数": 0,
+      "明细工具": "get_equity_freeze"
+    },
+    {
+      "风险因子": "司法拍卖",
+      "条目数": 0,
+      "明细工具": "get_judicial_auction"
+    },
+    {
+      "风险因子": "询价评估",
+      "条目数": 0,
+      "明细工具": "get_valuation_inquiry"
+    },
+    {
+      "风险因子": "诉前调解",
+      "条目数": 0,
+      "明细工具": "get_pre_litigation_mediation"
+    },
+    {
+      "风险因子": "限制出境",
+      "条目数": 0,
+      "明细工具": "get_exit_restriction"
+    },
+    {
+      "风险因子": "行政处罚",
+      "条目数": 0,
+      "明细工具": "get_administrative_penalty"
+    },
+    {
+      "风险因子": "经营异常",
+      "条目数": 0,
+      "明细工具": "get_business_exception"
+    },
+    {
+      "风险因子": "严重违法",
+      "条目数": 0,
+      "明细工具": "get_serious_violation"
+    },
+    {
+      "风险因子": "环保处罚",
+      "条目数": 0,
+      "明细工具": "get_environmental_penalty"
+    },
+    {
+      "风险因子": "税务非正常户",
+      "条目数": 0,
+      "明细工具": "get_tax_abnormal"
+    },
+    {
+      "风险因子": "欠税公告",
+      "条目数": 0,
+      "明细工具": "get_tax_arrears_notice"
+    },
+    {
+      "风险因子": "税收违法",
+      "条目数": 0,
+      "明细工具": "get_tax_violation"
+    },
+    {
+      "风险因子": "惩戒名单",
+      "条目数": 0,
+      "明细工具": "get_disciplinary_list"
+    },
+    {
+      "风险因子": "违约事项",
+      "条目数": 0,
+      "明细工具": "get_default_info"
+    },
+    {
+      "风险因子": "担保信息",
+      "条目数": 0,
+      "明细工具": "get_guarantee_info"
+    },
+    {
+      "风险因子": "股权出质",
+      "条目数": 0,
+      "明细工具": "get_equity_pledge_info"
+    },
+    {
+      "风险因子": "股权质押",
+      "条目数": 0,
+      "明细工具": "get_stock_pledge_info"
+    },
+    {
+      "风险因子": "动产抵押",
+      "条目数": 0,
+      "明细工具": "get_chattel_mortgage_info"
+    },
+    {
+      "风险因子": "土地抵押",
+      "条目数": 0,
+      "明细工具": "get_land_mortgage_info"
+    },
+    {
+      "风险因子": "简易注销",
+      "条目数": 0,
+      "明细工具": "get_simple_cancellation_info"
+    },
+    {
+      "风险因子": "注销备案",
+      "条目数": 0,
+      "明细工具": "get_cancellation_record_info"
+    },
+    {
+      "风险因子": "清算信息",
+      "条目数": 0,
+      "明细工具": "get_liquidation_info"
+    },
+    {
+      "风险因子": "劳动仲裁",
+      "条目数": 0,
+      "明细工具": "get_service_announcement"
+    },
+    {
+      "风险因子": "公示催告",
+      "条目数": 0,
+      "明细工具": "get_public_exhortation"
+    },
+    {
+      "风险因子": "财产悬赏公告",
+      "条目数": 0,
+      "明细工具": "get_property_asset_announcement"
+    }
+  ]
+}

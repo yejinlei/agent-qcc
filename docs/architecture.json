@@ -2,83 +2,511 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "agent-qcc 4R+1 架构",
+    "title": "agent-qcc 系统架构",
+    "subtitle": "4R+1 编排：Route → Reason → Retrieve → Reflect → Respond",
     "quality_profile": "showcase",
-    "viewBox": [1500, 1080],
+    "viewBox": [
+      1480,
+      720
+    ],
     "views": [
       {
         "id": "main-path",
         "label": "主调用链路",
-        "focus": ["user", "cli", "graph", "route", "reason", "retrieve", "reflect", "respond", "qcc", "qcc-mcp"],
-        "note": "用户请求经 CLI 进入 StateGraph，依次流过 Route→Reason→Retrieve→Reflect→Respond 五个节点，最终由 QccClient 调用企查查连接器。"
+        "focus": [
+          "user",
+          "cli",
+          "graph",
+          "route",
+          "reason",
+          "retrieve",
+          "reflect",
+          "respond",
+          "qcc",
+          "qcc-mcp"
+        ],
+        "note": "请求经 CLI 进入 StateGraph，依次流过五个节点，最终由 QccClient 调用企查查连接器。"
       },
       {
         "id": "llm-and-skill",
         "label": "LLM 与 Skill 支撑",
-        "focus": ["llm", "openai", "skill", "skill-data", "route", "respond", "reason", "reflect"],
-        "note": "LlmClient 为 Route/Reason/Reflect/Respond 提供大模型推理；SkillLoader 从 skills/qcc-company 读取工具清单与传输配置。"
+        "focus": [
+          "llm",
+          "openai",
+          "skill",
+          "skill-data",
+          "route",
+          "respond",
+          "reason",
+          "reflect"
+        ],
+        "note": "LlmClient 提供大模型推理；SkillLoader 从 skills/qcc-company 读取工具清单。"
       },
       {
         "id": "state-and-checkpoint",
         "label": "状态与持久化",
-        "focus": ["checkpointer", "graph"],
-        "note": "AgentState 在节点间流转；Checkpointer 保存线程状态以支持续接。"
+        "focus": [
+          "checkpointer",
+          "graph"
+        ],
+        "note": "AgentState 在节点间流转；Checkpointer 按 thread_id 保存线程状态以支持续接。"
       }
     ]
   },
   "components": [
-    { "id": "user", "type": "external", "label": "用户", "sublabel": "自然人输入", "pos": [40, 490], "size": [120, 60] },
-    { "id": "cli", "type": "frontend", "label": "CLI / TUI", "sublabel": "typer + rich", "pos": [230, 490], "size": [130, 60], "tag": "agent-qcc" },
-    { "id": "graph", "type": "backend", "label": "LangGraph", "sublabel": "StateGraph", "pos": [440, 490], "size": [140, 60], "tag": "4R+1 编排" },
-
-    { "id": "route", "type": "backend", "label": "R1 Route", "sublabel": "意图识别 + 企业名抽取", "pos": [680, 60], "size": [170, 80] },
-    { "id": "reason", "type": "backend", "label": "R2 Reason", "sublabel": "工具规划", "pos": [680, 230], "size": [170, 60] },
-    { "id": "retrieve", "type": "backend", "label": "R3 Retrieve", "sublabel": "连接器调用", "pos": [680, 380], "size": [170, 60] },
-    { "id": "reflect", "type": "backend", "label": "R4 Reflect", "sublabel": "覆盖率反思", "pos": [680, 530], "size": [170, 60] },
-    { "id": "respond", "type": "backend", "label": "+1 Respond", "sublabel": "证据约束作答", "pos": [680, 700], "size": [170, 60] },
-
-    { "id": "llm", "type": "backend", "label": "LlmClient", "sublabel": "OpenAI 兼容封装", "pos": [960, 60], "size": [150, 60], "tag": "invoke_json / invoke_text" },
-    { "id": "openai", "type": "external", "label": "OpenAI 兼容端点", "sublabel": "gpt-4o-mini 等", "pos": [1230, 60], "size": [170, 60] },
-
-    { "id": "skill", "type": "backend", "label": "SkillLoader", "sublabel": "SKILL.md + mcp.json", "pos": [960, 230], "size": [150, 60], "tag": "15 tools" },
-    { "id": "skill-data", "type": "database", "label": "skills/qcc-company", "sublabel": "Connector Skill", "pos": [1230, 230], "size": [170, 60] },
-
-    { "id": "qcc", "type": "backend", "label": "QccClient", "sublabel": "MCP 客户端", "pos": [960, 380], "size": [150, 80], "tag": "auth + SSE + retry" },
-    { "id": "qcc-mcp", "type": "external", "label": "企查查 MCP", "sublabel": "streamable HTTP", "pos": [1230, 380], "size": [170, 80] },
-
-    { "id": "checkpointer", "type": "database", "label": "Checkpointer", "sublabel": "InMemorySaver", "pos": [440, 700], "size": [140, 60], "tag": "thread_id 续接" }
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户",
+      "sublabel": "自然语言输入",
+      "pos": [
+        40,
+        322
+      ],
+      "size": [
+        120,
+        56
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "CLI / TUI",
+      "sublabel": "typer + rich",
+      "pos": [
+        230,
+        322
+      ],
+      "size": [
+        130,
+        56
+      ],
+      "tag": "agent-qcc"
+    },
+    {
+      "id": "graph",
+      "type": "backend",
+      "label": "LangGraph",
+      "sublabel": "StateGraph",
+      "pos": [
+        440,
+        322
+      ],
+      "size": [
+        140,
+        56
+      ],
+      "tag": "4R+1"
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "R1 Route",
+      "sublabel": "意图识别 + 企业名抽取",
+      "pos": [
+        680,
+        48
+      ],
+      "size": [
+        180,
+        66
+      ]
+    },
+    {
+      "id": "reason",
+      "type": "backend",
+      "label": "R2 Reason",
+      "sublabel": "按工具清单规划最少调用",
+      "pos": [
+        680,
+        174
+      ],
+      "size": [
+        180,
+        56
+      ]
+    },
+    {
+      "id": "retrieve",
+      "type": "backend",
+      "label": "R3 Retrieve",
+      "sublabel": "连接器调用，结果落 evidence",
+      "pos": [
+        680,
+        290
+      ],
+      "size": [
+        180,
+        56
+      ]
+    },
+    {
+      "id": "reflect",
+      "type": "backend",
+      "label": "R4 Reflect",
+      "sublabel": "覆盖率反思",
+      "pos": [
+        680,
+        406
+      ],
+      "size": [
+        180,
+        56
+      ]
+    },
+    {
+      "id": "respond",
+      "type": "backend",
+      "label": "+1 Respond",
+      "sublabel": "仅依据 evidence 作答",
+      "pos": [
+        680,
+        522
+      ],
+      "size": [
+        180,
+        56
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "backend",
+      "label": "LlmClient",
+      "sublabel": "invoke_json / invoke_text",
+      "pos": [
+        970,
+        48
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "openai",
+      "type": "external",
+      "label": "OpenAI 兼容端点",
+      "sublabel": "gpt-4o-mini 等",
+      "pos": [
+        1250,
+        48
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "skill",
+      "type": "backend",
+      "label": "SkillLoader",
+      "sublabel": "SKILL.md + mcp.json",
+      "pos": [
+        970,
+        174
+      ],
+      "size": [
+        150,
+        56
+      ],
+      "tag": "15 tools"
+    },
+    {
+      "id": "skill-data",
+      "type": "database",
+      "label": "skills/qcc-company",
+      "sublabel": "Connector Skill",
+      "pos": [
+        1250,
+        174
+      ],
+      "size": [
+        170,
+        56
+      ]
+    },
+    {
+      "id": "qcc",
+      "type": "backend",
+      "label": "QccClient",
+      "sublabel": "auth + SSE + retry",
+      "pos": [
+        970,
+        284
+      ],
+      "size": [
+        150,
+        66
+      ]
+    },
+    {
+      "id": "qcc-mcp",
+      "type": "external",
+      "label": "企查查 MCP",
+      "sublabel": "streamable HTTP",
+      "pos": [
+        1250,
+        284
+      ],
+      "size": [
+        170,
+        66
+      ]
+    },
+    {
+      "id": "checkpointer",
+      "type": "database",
+      "label": "Checkpointer",
+      "sublabel": "InMemorySaver",
+      "pos": [
+        440,
+        522
+      ],
+      "size": [
+        140,
+        56
+      ],
+      "tag": "thread_id 续接"
+    }
   ],
   "boundaries": [
-    { "kind": "region", "label": "agent-qcc 进程", "wraps": ["cli", "graph", "route", "reason", "retrieve", "reflect", "respond", "llm", "skill", "qcc", "checkpointer"] },
-    { "kind": "security-group", "label": "StateGraph 编排核心", "wraps": ["graph", "route", "reason", "retrieve", "reflect", "respond", "checkpointer"] }
+    {
+      "kind": "region",
+      "label": "agent-qcc 进程",
+      "wraps": [
+        "cli",
+        "graph",
+        "route",
+        "reason",
+        "retrieve",
+        "reflect",
+        "respond",
+        "llm",
+        "skill",
+        "qcc",
+        "checkpointer"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "StateGraph 编排核心",
+      "wraps": [
+        "graph",
+        "route",
+        "reason",
+        "retrieve",
+        "reflect",
+        "respond",
+        "checkpointer"
+      ]
+    }
   ],
   "connections": [
-    { "id": "user-to-cli", "from": "user", "to": "cli", "label": "自然语言提问", "variant": "emphasis", "labelAt": [170, 570] },
-    { "id": "cli-to-graph", "from": "cli", "to": "graph", "label": "invoke()", "labelAt": [380, 465] },
-    { "id": "graph-to-route", "from": "graph", "to": "route", "label": "START", "variant": "emphasis", "labelAt": [570, 270] },
-    { "id": "route-to-reason", "from": "route", "to": "reason", "label": "company_info / multi", "labelAt": [870, 185] },
-    { "id": "route-to-respond-chitchat", "from": "route", "to": "respond", "label": "chitchat 短路", "variant": "dashed", "fromSide": "left", "toSide": "left", "via": [[610, 100], [610, 730]], "labelAt": [560, 390] },
-    { "id": "reason-to-retrieve", "from": "reason", "to": "retrieve", "label": "tool_calls", "labelAt": [870, 335] },
-    { "id": "retrieve-to-reflect", "from": "retrieve", "to": "reflect", "label": "evidence", "labelAt": [870, 485] },
-    { "id": "reflect-to-respond", "from": "reflect", "to": "respond", "label": "respond", "labelAt": [870, 640] },
-    { "id": "reflect-to-retrieve-loop", "from": "reflect", "to": "retrieve", "label": "revise 回环", "variant": "dashed", "labelAt": [870, 460] },
-    { "id": "respond-to-cli", "from": "respond", "to": "cli", "label": "AIMessage", "variant": "emphasis", "fromSide": "bottom", "toSide": "bottom", "via": [[765, 790], [295, 790]], "labelAt": [500, 805] },
-
-    { "id": "route-llm", "from": "route", "to": "llm", "label": "invoke_json", "variant": "security", "labelAt": [905, 50] },
-    { "id": "llm-to-openai", "from": "llm", "to": "openai", "label": "ChatOpenAI", "variant": "emphasis", "labelAt": [1175, 40] },
-
-    { "id": "reason-skill", "from": "reason", "to": "skill", "label": "tool catalog", "variant": "dashed", "labelAt": [905, 250] },
-    { "id": "qcc-skill", "from": "qcc", "to": "skill", "label": "tools / transport", "variant": "dashed", "labelAt": [905, 340] },
-    { "id": "skill-to-data", "from": "skill", "to": "skill-data", "label": "load_skill()", "variant": "dashed", "labelAt": [1175, 250] },
-
-    { "id": "retrieve-qcc", "from": "retrieve", "to": "qcc", "label": "client.call()", "variant": "emphasis", "labelAt": [905, 420] },
-    { "id": "qcc-to-mcp", "from": "qcc", "to": "qcc-mcp", "label": "MCP tools/call", "variant": "emphasis", "labelAt": [1175, 360] },
-
-    { "id": "graph-checkpoint", "from": "graph", "to": "checkpointer", "label": "thread_id", "labelAt": [500, 660] }
-  ],
-  "cards": [
-    { "dot": "cyan", "title": "4R+1 编排", "items": ["Route → Reason → Retrieve → Reflect → Respond 五阶段", "chitchat 意图从 Route 直达 Respond", "Reflect 回环受 max_reflect_retries 限制"] },
-    { "dot": "emerald", "title": "连接器与 LLM", "items": ["QccClient 完整实现 MCP 握手 + SSE + 认证 + 重试", "LlmClient 封装任意 OpenAI 兼容端点", "SkillLoader 从 skills/ 读取工具清单与传输配置"] },
-    { "dot": "rose", "title": "状态与持久化", "items": ["AgentState TypedDict 在节点间共享", "Checkpointer 按 thread_id 保存线程状态", "离线模式无需 API Key 即可跑通全链路"] }
+    {
+      "id": "user-to-cli",
+      "from": "user",
+      "to": "cli",
+      "label": "自然语言提问",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cli-to-graph",
+      "from": "cli",
+      "to": "graph",
+      "label": "invoke()"
+    },
+    {
+      "id": "graph-to-route",
+      "from": "graph",
+      "to": "route",
+      "label": "START",
+      "variant": "emphasis",
+      "labelAt": [
+        570,
+        262
+      ]
+    },
+    {
+      "id": "route-to-reason",
+      "from": "route",
+      "to": "reason",
+      "label": "company_info / multi",
+      "labelAt": [
+        872,
+        132
+      ]
+    },
+    {
+      "id": "route-to-respond-chitchat",
+      "from": "route",
+      "to": "respond",
+      "label": "chitchat 短路",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          610,
+          81
+        ],
+        [
+          610,
+          550
+        ]
+      ],
+      "labelAt": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "reason-to-retrieve",
+      "from": "reason",
+      "to": "retrieve",
+      "label": "tool_calls",
+      "labelAt": [
+        872,
+        254
+      ]
+    },
+    {
+      "id": "retrieve-to-reflect",
+      "from": "retrieve",
+      "to": "reflect",
+      "label": "evidence",
+      "labelAt": [
+        872,
+        370
+      ]
+    },
+    {
+      "id": "reflect-to-respond",
+      "from": "reflect",
+      "to": "respond",
+      "label": "respond",
+      "labelAt": [
+        872,
+        486
+      ]
+    },
+    {
+      "id": "reflect-to-retrieve-loop",
+      "from": "reflect",
+      "to": "retrieve",
+      "label": "revise 回环",
+      "variant": "dashed",
+      "labelAt": [
+        872,
+        398
+      ]
+    },
+    {
+      "id": "respond-to-cli",
+      "from": "respond",
+      "to": "cli",
+      "label": "AIMessage",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          770,
+          620
+        ],
+        [
+          295,
+          620
+        ]
+      ],
+      "labelAt": [
+        500,
+        636
+      ]
+    },
+    {
+      "id": "route-llm",
+      "from": "route",
+      "to": "llm",
+      "label": "invoke_json",
+      "variant": "security",
+      "labelAt": [
+        906,
+        30
+      ]
+    },
+    {
+      "id": "llm-to-openai",
+      "from": "llm",
+      "to": "openai",
+      "label": "ChatOpenAI",
+      "variant": "emphasis",
+      "labelAt": [
+        1157,
+        20
+      ]
+    },
+    {
+      "id": "reason-skill",
+      "from": "reason",
+      "to": "skill",
+      "label": "tool catalog",
+      "variant": "dashed"
+    },
+    {
+      "id": "qcc-skill",
+      "from": "qcc",
+      "to": "skill",
+      "label": "tools / transport",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          930,
+          317
+        ],
+        [
+          930,
+          202
+        ]
+      ]
+    },
+    {
+      "id": "skill-to-data",
+      "from": "skill",
+      "to": "skill-data",
+      "label": "load_skill()",
+      "variant": "dashed"
+    },
+    {
+      "id": "retrieve-qcc",
+      "from": "retrieve",
+      "to": "qcc",
+      "label": "client.call()",
+      "variant": "emphasis",
+      "labelAt": [
+        912,
+        338
+      ]
+    },
+    {
+      "id": "qcc-to-mcp",
+      "from": "qcc",
+      "to": "qcc-mcp",
+      "label": "MCP tools/call",
+      "variant": "emphasis"
+    },
+    {
+      "id": "graph-checkpoint",
+      "from": "graph",
+      "to": "checkpointer",
+      "label": "thread_id",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        510,
+        392
+      ]
+    }
   ]
 }

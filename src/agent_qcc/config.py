@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- Qichacha connector ---------------------------------------------------
     qcc_mcp_url: str = "https://agent.qcc.com/mcp/company/stream"
-    qcc_skill_name: str = "qcc-company"
+    qcc_skill_name: str = "qcc-super"  # 默认使用超级智能体 skill（169 工具 + 11 MCP server + DuckDB + Semantica）
     skills_dir: Path = DEFAULT_SKILLS_DIR
     qcc_timeout: float = 45.0
     qcc_auth_token: str | None = None

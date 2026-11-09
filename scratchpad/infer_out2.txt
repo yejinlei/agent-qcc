@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "conform": true,
+  "findings": [
+    {
+      "rule": "R1-cleared",
+      "severity": "INFO",
+      "detail": "风险扫描已执行且无一票否决事件，写入 qcc:NoVetoSignal（闭世界已证明无）",
+      "conform": true
+    },
+    {
+      "rule": "R4-cleared",
+      "severity": "INFO",
+      "detail": "股东 浙江瑞航国际贸易有限公司 持股 68.0%，已入库且无风险标记",
+      "conform": true
+    },
+    {
+      "rule": "R4-cleared",
+      "severity": "INFO",
+      "detail": "股东 厦门胶友科技有限公司 持股 32.0%，已入库且无风险标记",
+      "conform": true
+    },
+    {
+      "rule": "R7-data-gap",
+      "severity": "LOW",
+      "detail": "实控人/UBO 未采集，R7 无法判定（需 get_actual_controller / get_beneficial_owners）",
+      "conform": true
+    }
+  ],
+  "count": 4,
+  "owlrl": {
+    "available": true,
+    "error": "BadSyntax: at line 225 of <>:\nBad syntax (objectList expected) at ^ in:\n\"...b'rdfs:range qcc:IPAsset ;\\n    rdfs:label \"\\xe7\\x9f\\xa5\\xe8\\xaf\\x86\\xe4\\xba\\xa7\\xe6\\x9d\\x83\\xe8\\xb5\\x84\\xe4\\xba\\xa7\"'^b'@zh .\\n\\nqcc:hasIndustry a owl:DatatypeProperty ;\\n    rdfs:dom'...\""
+  }
+}

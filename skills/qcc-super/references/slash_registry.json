@@ -1,0 +1,452 @@
+{
+  "$schema": "https://qcc.internal/skill/slash_registry.v1",
+  "version": "1.0.0",
+  "description": "qcc-super slash 命令注册表。所有命令在 scripts/slash.py 中解析分发，Agent 也可通过自然语言映射触发。",
+
+  "commands": [
+    {
+      "slash": "/qcc-profile",
+      "label": "企业画像",
+      "category": "core",
+      "handler": "qcc_profile",
+      "args": [
+        {"name": "target", "required": true, "description": "企业名称或 USCC"}
+      ],
+      "usage": "/qcc-profile <name|uscc>",
+      "example": "/qcc-profile 字节跳动",
+      "aliases": ["企业画像", "企业概览"],
+      "servers": ["qcc-company"],
+      "mcp_tools": ["get_company_registration_info", "get_company_profile"]
+    },
+    {
+      "slash": "/qcc-risk-scan",
+      "label": "风险扫描（34类）",
+      "category": "core",
+      "handler": "qcc_risk_scan",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/qcc-risk-scan <name|uscc>",
+      "example": "/qcc-risk-scan 91110000MA01ABCD1X",
+      "aliases": ["风险扫描", "34类风险"],
+      "servers": ["qcc-risk"],
+      "mcp_tools": ["get_company_risk_scan"]
+    },
+    {
+      "slash": "/qcc-ubo",
+      "label": "UBO / 实控人穿透",
+      "category": "core",
+      "handler": "qcc_ubo",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "threshold", "required": false, "default": 0.25, "description": "UBO 持股比例阈值"}
+      ],
+      "usage": "/qcc-ubo <name|uscc> [--threshold 0.25]",
+      "example": "/qcc-ubo 字节跳动 --threshold 0.25",
+      "aliases": ["受益所有人", "股权穿透", "实控人"],
+      "servers": ["qcc-company"],
+      "mcp_tools": ["get_actual_controller", "get_beneficial_owners", "get_shareholder_info"]
+    },
+    {
+      "slash": "/qcc-equity",
+      "label": "股权关系明细",
+      "category": "core",
+      "handler": "qcc_equity",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/qcc-equity <name|uscc>",
+      "example": "/qcc-equity 字节跳动",
+      "servers": ["qcc-company"],
+      "mcp_tools": ["get_shareholder_info", "get_external_investments"]
+    },
+    {
+      "slash": "/qcc-executive",
+      "label": "董监高任职",
+      "category": "core",
+      "handler": "qcc_executive",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/qcc-executive <name|uscc>",
+      "servers": ["qcc-executive", "qcc-company"],
+      "mcp_tools": ["get_executive_info", "get_company_executive"]
+    },
+    {
+      "slash": "/qcc-events",
+      "label": "事件明细",
+      "category": "core",
+      "handler": "qcc_events",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "type", "required": false, "description": "dishonest/penalty/court_document/..."},
+        {"name": "limit", "required": false, "default": 100}
+      ],
+      "usage": "/qcc-events <name|uscc> [--type X] [--limit N]",
+      "aliases": ["事件", "处罚", "失信", "被执行"],
+      "servers": ["qcc-risk"],
+      "mcp_tools": ["get_company_risk_scan"]
+    },
+    {
+      "slash": "/qcc-financial",
+      "label": "财务数据",
+      "category": "core",
+      "handler": "qcc_financial",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/qcc-financial <name|uscc>",
+      "servers": ["qcc-company"],
+      "mcp_tools": ["get_financial_data"]
+    },
+    {
+      "slash": "/qcc-ipr",
+      "label": "知识产权",
+      "category": "core",
+      "handler": "qcc_ipr",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/qcc-ipr <name|uscc>",
+      "servers": ["qcc-ipr"],
+      "mcp_tools": ["get_patent_info", "get_trademark_info", "get_software_copyright_info"]
+    },
+    {
+      "slash": "/qcc-tool-search",
+      "label": "工具检索",
+      "category": "meta",
+      "handler": "tool_search",
+      "args": [
+        {"name": "term", "required": true},
+        {"name": "top", "required": false, "default": 5}
+      ],
+      "usage": "/qcc-tool-search <keyword> [--top N]",
+      "example": "/qcc-tool-search 实控人 --top 5",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/qcc-sql",
+      "label": "高级 SQL 查询",
+      "category": "meta",
+      "handler": "raw_sql",
+      "args": [
+        {"name": "sql", "required": true}
+      ],
+      "usage": "/qcc-sql \"SELECT ...\"",
+      "servers": [],
+      "mcp_tools": []
+    },
+
+    {
+      "slash": "/kg-install",
+      "label": "安装 Semantica",
+      "category": "kg",
+      "handler": "kg_install",
+      "args": [],
+      "usage": "/kg-install",
+      "example": "/kg-install",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-build",
+      "label": "构建知识图谱",
+      "category": "kg",
+      "handler": "kg_build",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "depth", "required": false, "default": 2, "description": "穿透深度"}
+      ],
+      "usage": "/kg-build <name|uscc> [--depth N]",
+      "example": "/kg-build 字节跳动 --depth 2",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-query",
+      "label": "图查询 (SPARQL)",
+      "category": "kg",
+      "handler": "kg_query",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "query", "required": false, "description": "内联 SPARQL，仅推荐无空格片段；复杂查询用 query-file"},
+        {"name": "query_file", "required": false, "description": "SPARQL 文件路径（含空格/多行/前缀时使用）"},
+        {"name": "lang", "required": false, "default": "sparql"}
+      ],
+      "usage": "/kg-query <target> [--query 'SELECT ...'] | [--query-file path.sparql]",
+      "example": "/kg-query 字节跳动 --query-file examples/query.ttl",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-validate",
+      "label": "SHACL 约束校验",
+      "category": "kg",
+      "handler": "kg_validate",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "shape", "required": false, "default": "enterprise_shape", "description": "shape 名或 ttl 文件路径"}
+      ],
+      "usage": "/kg-validate <target> [--shape X]",
+      "example": "/kg-validate 字节跳动",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-infer",
+      "label": "本体论图推理",
+      "category": "kg",
+      "handler": "kg_infer",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "rules", "required": false, "description": "R1,R2,... 指定规则集"},
+        {"name": "use_owlrl", "required": false, "default": true, "description": "是否启用 owlrl 闭世界闭包；缺失/不可用时自动降级"}
+      ],
+      "usage": "/kg-infer <name|uscc> [--rules R1,R2] [--use_owlrl true|false]",
+      "example": "/kg-infer 字节跳动 --use_owlrl true",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-export",
+      "label": "图谱导出 (RDF)",
+      "category": "kg",
+      "handler": "kg_export",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "format", "required": false, "default": "ttl", "description": "ttl/jsonld/nt"}
+      ],
+      "usage": "/kg-export <target> [--format ttl]",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-visualize",
+      "label": "图谱可视化 (Cytoscape.js HTML)",
+      "category": "kg",
+      "handler": "kg_visualize",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "out", "required": false, "description": "输出 HTML 路径；默认 skills/qcc-super/output/kg-<uscc>.html"},
+        {"name": "use_owlrl", "required": false, "default": true, "description": "是否启用 owlrl 闭世界闭包，合并股东企业后交叉关系更完整"}
+      ],
+      "usage": "/kg-visualize <name|uscc> [--out path.html] [--use_owlrl true|false]",
+      "example": "/kg-visualize 91330110MAEW31RB2Q",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-infer-visualize",
+      "label": "推理链可视化 (Rule→Finding→Conclusion)",
+      "category": "kg",
+      "handler": "kg_infer_visualize",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "out", "required": false, "description": "输出 HTML 路径；默认 skills/qcc-super/output/kg-infer-<uscc>.html"},
+        {"name": "use_owlrl", "required": false, "default": true, "description": "是否启用 owlrl 闭世界闭包（影响 owlrl_meta 与推理结论）"}
+      ],
+      "usage": "/kg-infer-visualize <name|uscc> [--out path.html] [--use_owlrl true|false]",
+      "example": "/kg-infer-visualize 91330110MAEW31RB2Q",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-semantica-probe",
+      "label": "本体论栈依赖探测",
+      "category": "kg",
+      "handler": "kg_semantica_probe",
+      "args": [],
+      "usage": "/kg-semantica-probe",
+      "example": "/kg-semantica-probe",
+      "description": "深度探测 rdflib / pyshacl / owlrl / semantica 的安装状态、版本、模块可用性与新旧架构识别。semantica 0.6+ 已从传统 RDF 建模库演进为完整知识工程框架，本命令会逐一验证 12 个核心模块。",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-traverse",
+      "label": "跨企业穿透 + 社区发现",
+      "category": "kg",
+      "handler": "kg_traverse",
+      "args": [
+        {"name": "target", "required": true},
+        {"name": "layers", "default": 3},
+        {"name": "min_ratio", "default": 0.0},
+        {"name": "relation", "default": "all"}
+      ],
+      "usage": "/kg-traverse <企业USCC或名称> [--layers N] [--relation R] [--min-ratio X]",
+      "example": "/kg-traverse 91330110MAEW31RB2Q --layers 3 --relation all",
+      "description": "以中心企业为起点做多关系 N 层 BFS 穿透（默认 3 层）。关系集合由 --relation 控制，可选 all/equity/legal_rep/controller/ubo/executive 或逗号分隔组合，默认 all 表示全部启用。股权边走 equity_edge 表（holder→target 企业对企业），法定代表人/实控人/UBO/高管从 firm_wide + executive 表读取（person→firm）。边类型分别为 hasShareholder / hasLegalRep / hasController / hasUBO / hasExecutive，自然人以 person:<姓名> 命名空间为节点。穿透结果构造成 semantica KnowledgeGraph，用 Louvain 社区发现 + degree centrality 识别关联方集群与关键枢纽（Person 节点同样参与排名，可暴露自然人的多公司关联）。",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-semantica-ontology",
+      "label": "Semantica 本体一致性校验",
+      "category": "kg",
+      "handler": "kg_semantica_ontology",
+      "args": [
+        {"name": "target", "required": false, "description": "仅作记录用途，校验对象固定为 references/ontology/turtle/qcc_ontology.ttl"}
+      ],
+      "usage": "/kg-semantica-ontology",
+      "example": "/kg-semantica-ontology",
+      "description": "用 semantica.ontology.OntologyEngine.quality_check 对 qcc_ontology.ttl 做本体质量校验。从 TTL 解析 owl:Class / owl:ObjectProperty / owl:DatatypeProperty 及其 rdfs:label / rdfs:subClassOf / rdfs:domain / rdfs:range，输出覆盖率、类覆盖率、属性覆盖率、validator_valid 以及 issues 清单（含 severity/code/message/element_id）。用于持续保障本体随业务演进不失控。",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-semantica-reason",
+      "label": "Semantica SPARQL 规则推理",
+      "category": "kg",
+      "handler": "kg_semantica_reason",
+      "args": [
+        {"name": "target", "required": false, "description": "目标企业 uscc/name；缺省取 firm_wide 首行"},
+        {"name": "rules", "required": false, "default": "all", "description": "规则 id，逗号分隔或 all；可选 IR1-highest-shareholder / IR2-direct-control / IR3-risk-propagation"},
+        {"name": "use_owlrl", "required": false, "default": true, "description": "是否先做 owlrl 闭世界闭包，让 owl:subClassOf / owl:inverseOf 等推导出来的三元组也参与规则匹配"}
+      ],
+      "usage": "/kg-semantica-reason [企业USCC或名称] [--rules all|IR1,IR2] [--use_owlrl true|false]",
+      "example": "/kg-semantica-reason 浙江胶友科技有限公司 --rules all",
+      "description": "用 semantica.reasoning.SPARQLReasoner + rdflib 对企业图执行三条内置 SPARQL 规则推理：IR1 识别持股≥50% 控股股东；IR2 提取企业→法定代表人关联；IR3 识别持股≥20% 股东的风险传导。可选开启 owlrl 闭世界闭包后再跑规则，得到 owl:subClassOf / owl:hasValue 等派生结论。返回每条规则的 description / count / rows 明细。",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-semantica-requirements",
+      "label": "Semantica 规则数据就绪度检查",
+      "category": "kg",
+      "handler": "kg_semantica_requirements",
+      "args": [
+        {"name": "target", "required": false, "description": "目标企业 uscc/name；缺省为全表统计"},
+        {"name": "rules", "required": false, "default": "all", "description": "规则 id，逗号分隔或 all；可选 IR1-highest-shareholder / IR2-direct-control / IR3-risk-propagation"}
+      ],
+      "usage": "/kg-semantica-requirements [企业USCC或名称] [--rules all|IR1,IR2]",
+      "example": "/kg-semantica-requirements 浙江胶友科技有限公司",
+      "description": "推理前置：列出每条 SPARQL 规则需要的 predicate + 源表 + 字段 + FILTER 条件，并到 DuckDB 实时查询实际就绪度。返回 rules.{id}.ready 与 suggestion（若缺数据，提示需先运行的 /ingest-* 命令），避免推理跑完才发现 count=0。",
+      "servers": [],
+      "mcp_tools": []
+    },
+    {
+      "slash": "/kg-semantica-visualize",
+      "label": "Semantica 原生可视化（本体/KG）",
+      "category": "kg",
+      "handler": "kg_semantica_visualize",
+      "args": [
+        {"name": "kind", "required": false, "default": "kg", "description": "可视化类型：kg=企业知识图谱（企业/自然人/事件 融合图），ontology=qcc_ontology.ttl 类继承 + 属性连接结构图"},
+        {"name": "target", "required": false, "description": "目标企业 uscc/name（kind=kg 时生效；缺省取 firm_wide 首行）"},
+        {"name": "output", "required": false, "default": "html", "description": "输出格式：html（默认，自包含单文件，浏览器打开即可）/ png（需 matplotlib 后端）"},
+        {"name": "depth", "required": false, "default": "2", "description": "股权穿透 BFS 最大跳数（1=仅直接股东，2=穿透到二级，默认 2）"},
+        {"name": "include_risk", "required": false, "default": "true", "description": "是否把 event_wide 风险事件作为独立 event 节点展开（覆盖所有穿透到的企业）"},
+        {"name": "include_executive", "required": false, "default": "true", "description": "是否展开 executive 高管（覆盖所有穿透到的企业）"},
+        {"name": "relations", "required": false, "default": "all", "description": "firm_relation 关系过滤：all=全部关系边，top=仅高权重（>=0.5）"}
+      ],
+      "usage": "/kg-semantica-visualize [--kind kg|ontology] [--target 企业名] [--output html|png] [--depth N] [--include_risk true|false] [--include_executive true|false] [--relations all|top]",
+      "example": "/kg-semantica-visualize --kind kg --target 浙江胶友科技有限公司 --depth 2 --include_risk true --include_executive true",
+      "description": "用 semantica 自带 OntologyVisualizer / KGVisualizer 导出自包含 HTML 或 PNG。kind=ontology 输出 TTL 类继承树 + 属性连接（无需 target）；kind=kg 输出目标企业的融合图（firm_wide 直连 + equity_edge 多跳穿透 + executive 高管 + firm_relation 其他关系 + event_wide 风险事件）。stats 返回 equity_edges/executive_edges/relation_edges/event_edges/hop_reached 计数。产物落到 skills/qcc-super/data/visualize/。",
+      "servers": [],
+      "mcp_tools": []
+    },
+
+    {
+      "slash": "/credit-due-diligence",
+      "label": "信贷尽调",
+      "category": "official-banking",
+      "handler": "official_dispatch",
+      "args": [
+        {"name": "target", "required": true}
+      ],
+      "usage": "/credit-due-diligence <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company", "qcc-risk", "qcc-history", "qcc-executive"],
+      "efficiency": 5.0,
+      "scene": "信贷尽调"
+    },
+    {
+      "slash": "/kyb-verification-qcc",
+      "label": "银行开户 KYB 核验",
+      "category": "official-banking",
+      "handler": "official_dispatch",
+      "args": [{"name": "target", "required": true}],
+      "usage": "/kyb-verification-qcc <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company", "qcc-risk", "qcc-history", "qcc-executive", "qcc-operation"],
+      "efficiency": 2.0,
+      "scene": "银行开户KYB核验"
+    },
+    {
+      "slash": "/ubo-screening-qcc",
+      "label": "UBO 反洗钱筛查",
+      "category": "official-banking",
+      "handler": "qcc_ubo",
+      "args": [{"name": "target", "required": true}],
+      "usage": "/ubo-screening-qcc <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company"],
+      "efficiency": 5.0,
+      "scene": "UBO/反洗钱筛查"
+    },
+    {
+      "slash": "/ic-memo-qcc",
+      "label": "投委会备忘录",
+      "category": "official-invest",
+      "handler": "official_dispatch",
+      "args": [{"name": "target", "required": true}],
+      "usage": "/ic-memo-qcc <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company", "qcc-risk", "qcc-ipr", "qcc-history", "qcc-executive", "qcc-operation"],
+      "efficiency": 5.0,
+      "scene": "PE/VC投委会备忘录"
+    },
+    {
+      "slash": "/contract-review",
+      "label": "合同风险批注",
+      "category": "official-legal",
+      "handler": "official_dispatch",
+      "args": [{"name": "target", "required": true}],
+      "usage": "/contract-review <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company", "qcc-risk", "qcc-operation"],
+      "efficiency": 1.0,
+      "scene": "合同风险批注"
+    },
+    {
+      "slash": "/vendor-assess",
+      "label": "供应商深度尽调",
+      "category": "official-supply",
+      "handler": "official_dispatch",
+      "args": [{"name": "target", "required": true}],
+      "usage": "/vendor-assess <name|uscc>",
+      "official": true,
+      "servers": ["qcc-company", "qcc-risk", "qcc-operation", "qcc-history", "qcc-executive"],
+      "efficiency": 2.0,
+      "scene": "供应商深度尽调"
+    }
+  ],
+
+  "handler_map": {
+    "qcc_profile":    "qcc_profile",
+    "qcc_risk_scan":  "qcc_risk_scan",
+    "qcc_ubo":        "qcc_ubo",
+    "qcc_equity":     "qcc_equity",
+    "qcc_executive":  "qcc_executive",
+    "qcc_events":     "qcc_events",
+    "qcc_financial":  "qcc_financial",
+    "qcc_ipr":        "qcc_ipr",
+    "tool_search":    "tool_search",
+    "raw_sql":        "raw_sql",
+    "kg_install":     "kg_install",
+    "kg_build":       "kg_build",
+    "kg_query":       "kg_query",
+    "kg_validate":    "kg_validate",
+    "kg_infer":       "kg_infer",
+    "kg_export":      "kg_export",
+    "kg_visualize":   "kg_visualize",
+    "kg_infer_visualize": "kg_infer_visualize",
+    "kg_semantica_probe": "kg_semantica_probe",
+    "kg_semantica_ontology": "kg_semantica_ontology",
+    "kg_semantica_reason": "kg_semantica_reason",
+    "kg_semantica_requirements": "kg_semantica_requirements",
+    "kg_semantica_visualize": "kg_semantica_visualize",
+    "kg_traverse": "kg_traverse",
+    "official_dispatch": "official_dispatch"
+  }
+}

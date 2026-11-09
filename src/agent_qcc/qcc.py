@@ -5,7 +5,9 @@ streamable-HTTP MCP protocol:
 
 1. **Initialize handshake** — a ``POST`` with ``method: initialize`` to
    negotiate protocol version and server capabilities.  The session id from
-   the ``Mcp-Session-Id`` header is reused for subsequent calls.
+   the ``Mcp-Session-Id`` header is reused for subsequent calls, and is kept
+   per URL because a skill may declare several MCP servers (``qcc-super``
+   routes each tool to its own server via ``ToolSpec.server``).
 2. **Tool call** — ``POST`` with ``method: tools/call``.  The response may be
    a single JSON object or an SSE stream (``text/event-stream``); both are
    handled.
@@ -125,7 +127,8 @@ class QccClient:
         self.skill = skill
         self.settings = settings
         self.tools: dict[str, ToolSpec] = {tool.name: tool for tool in skill.tools}
-        self._session_id: str | None = None
+        #: session id 按 URL 保存 —— 一个 skill 可能声明多个 MCP server
+        self._session_ids: dict[str, str] = {}
         self._client: httpx.AsyncClient | None = None
 
     # -- properties --------------------------------------------------------
@@ -135,10 +138,28 @@ class QccClient:
         return str(self.skill.transport.get("url") or "") or None
 
     @property
+    def servers(self) -> dict[str, str]:
+        """skill 声明的全部 MCP server（name → url）；单 server skill 只有一项。"""
+        raw = self.skill.transport.get("servers") or {}
+        default = self.url
+        if not raw:
+            name = str(self.skill.transport.get("server") or "")
+            return {name: default} if name and default else {}
+        return {str(name): str(entry.get("url") or "") for name, entry in raw.items()}
+
+    @property
     def transport(self) -> str:
         return str(self.skill.transport.get("type") or "streamableHttp")
 
-    def _headers(self, *, extra: dict[str, str] | None = None) -> dict[str, str]:
+    def url_for(self, tool_name: str) -> str | None:
+        """工具所属 server 的 URL；server 未声明或未知时回退到默认 URL。"""
+        default = self.url
+        spec = self.tools.get(tool_name)
+        if spec is None or not spec.server:
+            return default
+        return self.servers.get(spec.server) or default
+
+    def _headers(self, *, url: str | None = None, extra: dict[str, str] | None = None) -> dict[str, str]:
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
@@ -150,8 +171,9 @@ class QccClient:
                 headers[self.settings.qcc_auth_header] = f"{scheme} {token}"
             else:
                 headers[self.settings.qcc_auth_header] = token
-        if self._session_id:
-            headers["Mcp-Session-Id"] = self._session_id
+        session_id = self._session_ids.get(url or self.url or "")
+        if session_id:
+            headers["Mcp-Session-Id"] = session_id
         if extra:
             headers.update(extra)
         return headers
@@ -199,10 +221,11 @@ class QccClient:
             self._client = httpx.AsyncClient(timeout=self.settings.qcc_timeout)
         return self._client
 
-    async def _initialize(self) -> str | None:
-        """MCP initialize handshake; returns the session id or ``None``."""
-        if not self.url or self._session_id:
-            return self._session_id
+    async def _initialize(self, url: str | None = None) -> str | None:
+        """MCP initialize handshake; returns the session id for ``url``."""
+        target = url or self.url
+        if not target or target in self._session_ids:
+            return self._session_ids.get(target or "")
         payload = {
             "jsonrpc": "2.0",
             "id": 0,
@@ -214,22 +237,24 @@ class QccClient:
             },
         }
         client = await self._get_client()
-        resp = await client.post(self.url, json=payload, headers=self._headers())
-        self._session_id = resp.headers.get("Mcp-Session-Id")
+        resp = await client.post(target, json=payload, headers=self._headers(url=target))
+        session_id = resp.headers.get("Mcp-Session-Id")
         # Acknowledge with an empty notifications/initialized message.
-        if self._session_id:
+        if session_id:
+            self._session_ids[target] = session_id
             ack = {
                 "jsonrpc": "2.0",
                 "method": "notifications/initialized",
             }
-            await client.post(self.url, json=ack, headers=self._headers())
-        return self._session_id
+            await client.post(target, json=ack, headers=self._headers(url=target))
+        return session_id
 
     async def _remote(
         self, tool_name: str, args: dict[str, Any], target: str, started: float
     ) -> ToolResult:
         """Remote call with retry and SSE handling."""
-        if not self.url:
+        endpoint = self.url_for(tool_name)
+        if not endpoint:
             return ToolResult(
                 tool=tool_name, target=target, ok=False,
                 error=f"connector 未配置 URL（skills/{self.skill.name}/mcp.json）",
@@ -238,7 +263,7 @@ class QccClient:
         last_error = ""
         for attempt in range(self.settings.qcc_retries + 1):
             try:
-                result = await self._call_once(tool_name, args, target, started)
+                result = await self._call_once(tool_name, args, target, started, endpoint)
                 if result.ok or not self._is_retryable_error(result.error):
                     return result
                 last_error = result.error
@@ -263,9 +288,9 @@ class QccClient:
         return any(t in lower for t in ("timeout", "connecterror", "readerror", "5", "502", "503", "504"))
 
     async def _call_once(
-        self, tool_name: str, args: dict[str, Any], target: str, started: float
+        self, tool_name: str, args: dict[str, Any], target: str, started: float, endpoint: str
     ) -> ToolResult:
-        await self._initialize()
+        await self._initialize(endpoint)
         client = await self._get_client()
         payload = {
             "jsonrpc": "2.0",
@@ -273,7 +298,7 @@ class QccClient:
             "method": "tools/call",
             "params": {"name": tool_name, "arguments": args},
         }
-        response = await client.post(self.url, json=payload, headers=self._headers())
+        response = await client.post(endpoint, json=payload, headers=self._headers(url=endpoint))
         response.raise_for_status()
         content_type = response.headers.get("content-type", "")
         if "text/event-stream" in content_type:

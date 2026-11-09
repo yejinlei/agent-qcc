@@ -1,0 +1,9 @@
+PREFIX qcc: <http://qcc.internal/ontology#>
+
+SELECT ?name ?uscc ?status ?controller WHERE {
+  ?e a qcc:Enterprise ;
+     qcc:hasName ?name ;
+     qcc:hasUSCC ?uscc ;
+     qcc:hasBusinessStatus ?status .
+  OPTIONAL { ?e qcc:hasController ?controller }
+}

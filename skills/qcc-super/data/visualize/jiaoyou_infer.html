@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>qcc-super 推理链 — 浙江胶友科技有限公司 (91330110MAEW31RB2Q)</title>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;height:100%;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#0f1117;color:#e6e8ee;display:flex;flex-direction:column;}
+  header{padding:12px 20px;background:#161a22;border-bottom:1px solid #2a2f3a;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;}
+  header h1{margin:0;font-size:16px;font-weight:600;}
+  header .meta{font-size:12px;color:#8892a6;display:flex;gap:12px;flex-wrap:wrap;}
+  header .meta span{margin-right:4px;}
+  header .conform{padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#0f1117;background:#66cc99;}
+  #body{display:flex;flex:1;min-height:0;}
+  #cy{flex:1;min-width:0;}
+  aside{width:320px;background:#12151c;border-left:1px solid #2a2f3a;padding:12px;overflow-y:auto;flex-shrink:0;}
+  aside h3{margin:0 0 8px;font-size:13px;color:#e6e8ee;}
+  aside .item{padding:8px;border:1px solid #2a2f3a;border-radius:6px;margin-bottom:8px;font-size:12px;background:#0f1117;}
+  aside .item .badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin-right:6px;}
+  aside .item .badge.HIGH{background:#ff6666;color:#fff;}
+  aside .item .badge.MEDIUM{background:#ffcc66;color:#0f1117;}
+  aside .item .badge.LOW{background:#66cc99;color:#0f1117;}
+  aside .item .badge.INFO{background:#8892a6;color:#0f1117;}
+  aside .item .rule{color:#c4b5fd;font-weight:600;}
+  aside .item .detail{color:#c8cdd6;margin-top:4px;white-space:pre-wrap;}
+  #legend{padding:8px 20px;background:#12151c;border-top:1px solid #2a2f3a;font-size:12px;display:flex;gap:20px;flex-wrap:wrap;flex-shrink:0;}
+  #legend .item{display:flex;align-items:center;gap:6px;}
+  #legend .dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+  #legend .line{width:24px;height:2px;display:inline-block;}
+</style>
+</head>
+<body>
+<header>
+  <h1>qcc-super 推理链可视化</h1>
+  <div class="meta">
+    <span>目标：<b style="color:#66cc99">浙江胶友科技有限公司</b> (91330110MAEW31RB2Q)</span>
+    <span>findings 4</span>
+    <span>规则 3</span>
+    <span>owlrl 未启用</span>
+    <span class="conform">符合</span>
+  </div>
+</header>
+<div id="body">
+  <div id="cy"></div>
+  <aside>
+    <h3>Findings (4)</h3>
+    <div id="findings"></div>
+  </aside>
+</div>
+<div id="legend">
+  <div class="item"><span class="dot" style="background:#c4b5fd"></span>规则 (Rule)</div>
+  <div class="item"><span class="dot" style="background:#ffcc66"></span>Finding (INFO/LOW)</div>
+  <div class="item"><span class="dot" style="background:#ff6666"></span>Finding (HIGH)</div>
+  <div class="item"><span class="dot" style="background:#66cc99"></span>结论 (符合)</div>
+  <div class="item"><span class="dot" style="background:#ff6666"></span>结论 (违反)</div>
+  <div class="item"><span class="line" style="background:#8892a6"></span>应用</div>
+  <div class="item"><span class="line" style="background:#ff6666"></span>违反</div>
+  <div class="item"><span class="line" style="background:#66cc99"></span>满足</div>
+</div>
+<script>
+const elements = {"nodes": [{"data": {"id": "N:conclusion", "type": "conclusion", "severity": "LOW", "label": "结论 · 全部规则符合", "conform": true, "detail": "共 4 条 finding；HIGH=0，MEDIUM=0，LOW=1，INFO=3"}}, {"data": {"id": "N:owlrl", "type": "owlrl", "severity": "INFO", "label": "owlrl 未启用", "detail": "data_triples=?  new=0  closed=?"}}, {"data": {"id": "N:rule:R1-cleared", "type": "rule", "severity": "INFO", "label": "R1 一票否决\n(1 条)", "detail": "规则 R1-cleared；命中 finding 1 条；最高严重度 INFO"}}, {"data": {"id": "N:finding:R1-cleared:1", "type": "finding", "severity": "INFO", "label": "[INFO] 风险扫描已执行且无一票否决事件，写入 qcc:NoVetoSignal（闭世界已…", "detail": "规则：R1-cleared\n严重度：INFO\n结论：符合\n\n风险扫描已执行且无一票否决事件，写入 qcc:NoVetoSignal（闭世界已证明无）", "conform": true}}, {"data": {"id": "N:rule:R4-cleared", "type": "rule", "severity": "INFO", "label": "R4 股东风险传导\n(2 条)", "detail": "规则 R4-cleared；命中 finding 2 条；最高严重度 INFO"}}, {"data": {"id": "N:finding:R4-cleared:1", "type": "finding", "severity": "INFO", "label": "[INFO] 股东 浙江瑞航国际贸易有限公司 持股 68.0%，已入库且无风险标记", "detail": "规则：R4-cleared\n严重度：INFO\n结论：符合\n\n股东 浙江瑞航国际贸易有限公司 持股 68.0%，已入库且无风险标记", "conform": true}}, {"data": {"id": "N:finding:R4-cleared:2", "type": "finding", "severity": "INFO", "label": "[INFO] 股东 厦门胶友科技有限公司 持股 32.0%，已入库且无风险标记", "detail": "规则：R4-cleared\n严重度：INFO\n结论：符合\n\n股东 厦门胶友科技有限公司 持股 32.0%，已入库且无风险标记", "conform": true}}, {"data": {"id": "N:rule:R7-data-gap", "type": "rule", "severity": "LOW", "label": "R7 系统性风险主体\n(1 条)", "detail": "规则 R7-data-gap；命中 finding 1 条；最高严重度 LOW"}}, {"data": {"id": "N:finding:R7-data-gap:1", "type": "finding", "severity": "LOW", "label": "[LOW] 实控人/UBO 未采集，R7 无法判定（需 get_actual_control…", "detail": "规则：R7-data-gap\n严重度：LOW\n结论：符合\n\n实控人/UBO 未采集，R7 无法判定（需 get_actual_controller / get_beneficial_owners）", "conform": true}}], "edges": [{"data": {"id": "E:rule:R1-cleared->N:finding:R1-cleared:1", "source": "N:rule:R1-cleared", "target": "N:finding:R1-cleared:1", "label": "应用", "prop": "applies"}}, {"data": {"id": "E:finding:N:finding:R1-cleared:1->conclusion", "source": "N:finding:R1-cleared:1", "target": "N:conclusion", "label": "满足", "prop": "satisfies", "conform": true}}, {"data": {"id": "E:rule:R4-cleared->N:finding:R4-cleared:1", "source": "N:rule:R4-cleared", "target": "N:finding:R4-cleared:1", "label": "应用", "prop": "applies"}}, {"data": {"id": "E:finding:N:finding:R4-cleared:1->conclusion", "source": "N:finding:R4-cleared:1", "target": "N:conclusion", "label": "满足", "prop": "satisfies", "conform": true}}, {"data": {"id": "E:rule:R4-cleared->N:finding:R4-cleared:2", "source": "N:rule:R4-cleared", "target": "N:finding:R4-cleared:2", "label": "应用", "prop": "applies"}}, {"data": {"id": "E:finding:N:finding:R4-cleared:2->conclusion", "source": "N:finding:R4-cleared:2", "target": "N:conclusion", "label": "满足", "prop": "satisfies", "conform": true}}, {"data": {"id": "E:rule:R7-data-gap->N:finding:R7-data-gap:1", "source": "N:rule:R7-data-gap", "target": "N:finding:R7-data-gap:1", "label": "应用", "prop": "applies"}}, {"data": {"id": "E:finding:N:finding:R7-data-gap:1->conclusion", "source": "N:finding:R7-data-gap:1", "target": "N:conclusion", "label": "满足", "prop": "satisfies", "conform": true}}, {"data": {"id": "E:owlrl->conclusion", "source": "N:owlrl", "target": "N:conclusion", "label": "基于", "prop": "based_on"}}]};
+const findings = [{"rule": "R1-cleared", "severity": "INFO", "detail": "风险扫描已执行且无一票否决事件，写入 qcc:NoVetoSignal（闭世界已证明无）", "conform": true}, {"rule": "R4-cleared", "severity": "INFO", "detail": "股东 浙江瑞航国际贸易有限公司 持股 68.0%，已入库且无风险标记", "conform": true}, {"rule": "R4-cleared", "severity": "INFO", "detail": "股东 厦门胶友科技有限公司 持股 32.0%，已入库且无风险标记", "conform": true}, {"rule": "R7-data-gap", "severity": "LOW", "detail": "实控人/UBO 未采集，R7 无法判定（需 get_actual_controller / get_beneficial_owners）", "conform": true}];
+const style = [
+  { selector: 'node', style: {
+    'label': 'data(label)',
+    'font-size': '10px',
+    'color': '#e6e8ee',
+    'text-valign': 'center',
+    'text-halign': 'center',
+    'text-wrap': 'wrap',
+    'text-max-width': '140px',
+    'text-outline-color': '#0f1117',
+    'text-outline-width': 2,
+    'background-color': '#8892a6',
+    'border-width': 1,
+    'border-color': '#ffffff33',
+    'shape': 'ellipse',
+    'width': 40,
+    'height': 40,
+  } },
+  { selector: 'node[type="rule"]', style: {
+    'background-color': '#c4b5fd', 'shape': 'round-rectangle',
+    'width': 72, 'height': 46, 'font-size': '11px', 'font-weight': 'bold',
+    'color': '#0f1117',
+  } },
+  { selector: 'node[type="rule"][severity="HIGH"]', style: {
+    'background-color': '#ff88cc', 'border-color': '#ff4488',
+  } },
+  { selector: 'node[type="rule"][severity="MEDIUM"]', style: {
+    'background-color': '#ffb066', 'border-color': '#ff9044',
+  } },
+  { selector: 'node[type="finding"]', style: {
+    'background-color': '#ffcc66', 'shape': 'diamond',
+    'width': 62, 'height': 62, 'font-size': '10px', 'color': '#0f1117',
+  } },
+  { selector: 'node[type="finding"][severity="HIGH"]', style: {
+    'background-color': '#ff6666', 'border-width': 3, 'border-color': '#ffccff',
+    'width': 78, 'height': 78, 'z-index': 5,
+  } },
+  { selector: 'node[type="finding"][severity="MEDIUM"]', style: {
+    'background-color': '#ff9944', 'border-width': 2, 'border-color': '#ffcc88',
+    'width': 68, 'height': 68,
+  } },
+  { selector: 'node[type="finding"][severity="LOW"]', style: {
+    'background-color': '#66cc99',
+  } },
+  { selector: 'node[type="finding"][severity="INFO"]', style: {
+    'background-color': '#8892a6',
+  } },
+  { selector: 'node[type="conclusion"][conform="true"]', style: {
+    'background-color': '#66cc99', 'shape': 'hexagon',
+    'width': 110, 'height': 76, 'font-size': '13px', 'font-weight': 'bold',
+    'border-width': 3, 'border-color': '#ffffff',
+    'color': '#0f1117', 'z-index': 10,
+  } },
+  { selector: 'node[type="conclusion"][conform="false"]', style: {
+    'background-color': '#ff6666', 'shape': 'hexagon',
+    'width': 110, 'height': 76, 'font-size': '13px', 'font-weight': 'bold',
+    'border-width': 3, 'border-color': '#ffffff',
+    'color': '#ffffff', 'z-index': 10,
+  } },
+  { selector: 'node[type="owlrl"]', style: {
+    'background-color': '#8892a6', 'shape': 'parallelogram',
+    'width': 88, 'height': 44, 'font-size': '10px',
+  } },
+  {
+    selector: 'edge',
+    style: {
+      'width': 1.4,
+      'line-color': '#555c6b',
+      'curve-style': 'bezier',
+      'target-arrow-shape': 'triangle',
+      'target-arrow-color': '#555c6b',
+      'target-arrow-size': 8,
+      'label': 'data(label)',
+      'font-size': '9px',
+      'color': '#8892a6',
+      'text-opacity': 0.7,
+      'text-outline-color': '#0f1117',
+      'text-outline-width': 2,
+      'edge-text-rotation': 'none',
+    }
+  },
+  { selector: 'edge[prop="applies"]',   style: { 'line-color': '#8892a6', 'target-arrow-color': '#8892a6' } },
+  { selector: 'edge[prop="violates"]',  style: { 'line-color': '#ff6666', 'target-arrow-color': '#ff6666', 'width': 2 } },
+  { selector: 'edge[prop="satisfies"]', style: { 'line-color': '#66cc99', 'target-arrow-color': '#66cc99' } },
+  { selector: 'edge[prop="based_on"]',  style: { 'line-color': '#8892a6', 'target-arrow-color': '#8892a6', 'line-style': 'dotted' } },
+  { selector: 'node:selected, edge:selected', style: {
+    'border-width': 3, 'border-color': '#ffffff', 'z-index': 10,
+    'line-color': '#ffffff', 'target-arrow-color': '#ffffff',
+    'text-opacity': 1,
+  } },
+  { selector: 'node:unselected, edge:unselected', style: {
+    'opacity': 0.4, 'text-opacity': 0.25,
+  } },
+];
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  elements: elements,
+  style: style,
+  layout: { name: 'cose', animate: false, padding: 50, nodeRepulsion: 12000, idealEdgeLength: 130, edgeElasticity: 180 },
+  wheelSensitivity: 0.25,
+  minZoom: 0.3,
+});
+// 侧栏渲染 findings
+const findingsBox = document.getElementById('findings');
+if(findings.length === 0){
+  findingsBox.innerHTML = '<div class="item" style="color:#8892a6;">暂无 finding — 全部规则符合或跳过</div>';
+} else {
+  findingsBox.innerHTML = findings.map(f =>
+    '<div class="item">' +
+      '<span class="badge ' + (f.severity||'INFO') + '">' + (f.severity||'INFO') + '</span>' +
+      '<span class="rule">' + (f.rule||'?') + '</span>' +
+      '<div class="detail">' + (f.detail||'').replace(/</g,'&lt;') + '</div>' +
+    '</div>'
+  ).join('');
+}
+// 点击同步
+cy.on('tap', 'node', function(e){
+  const d = e.target.data();
+  if(d.type === 'finding'){
+    // 在侧栏中找到对应 finding 并高亮
+    const items = findingsBox.querySelectorAll('.item');
+    items.forEach(el => el.style.background = '');
+    const idx = findings.findIndex(f => (f.rule + '#' + f.severity) === (d.label.match(/\[(\w+)\]/)&& d.label.match(/\[(\w+)\]/)[1]));
+  }
+});
+cy.on('tap', 'edge', function(e){
+  const d = e.target.data();
+  const s = cy.getElementById(d.source).data('label');
+  const t = cy.getElementById(d.target).data('label');
+  const sel = s + ' → ' + t + ' · 边：' + d.label + ' (' + d.prop + ')';
+  console.log(sel);
+});
+</script>
+</body>
+</html>

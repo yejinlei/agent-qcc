@@ -1003,8 +1003,11 @@ def test_DEFECT_chat_reports_no_output_even_for_a_valid_question(
     tools = {name for name, _args in pipeline.client.calls}
     assert tools, "the connector was never called"
     assert tools <= set(skill.tool_names())
-    for _name, args in pipeline.client.calls:
-        assert args == {"name": COMPANY}  # the question's target reached the connector
+    requires = {tool.name: tool.requires for tool in skill.tools}
+    for name, args in pipeline.client.calls:
+        key = requires[name][0] if requires.get(name) else "name"
+        # the question's target reached the connector under the tool's required arg
+        assert args == {key: COMPANY}
 
 
 def test_chat_reports_a_successful_query(runner, captured_console, monkeypatch, factory_tuple):

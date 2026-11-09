@@ -1,0 +1,72 @@
+{
+  "mcpServers": {
+    "qcc-company": {
+      "url": "https://agent.qcc.com/mcp/company/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-risk": {
+      "url": "https://agent.qcc.com/mcp/risk/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-history": {
+      "url": "https://agent.qcc.com/mcp/history/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      },
+      "_requiresCert": true
+    },
+    "qcc-executive": {
+      "url": "https://agent.qcc.com/mcp/executive/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-ipr": {
+      "url": "https://agent.qcc.com/mcp/ipr/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-operation": {
+      "url": "https://agent.qcc.com/mcp/operation/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-legal-regulation": {
+      "url": "https://agent.qcc.com/mcp/regulation/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-legal-case": {
+      "url": "https://agent.qcc.com/mcp/case/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-tender": {
+      "url": "https://agent.qcc.com/mcp/tender/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-document": {
+      "url": "https://agent.qcc.com/mcp/document/stream",
+      "headers": {
+        "Authorization": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    },
+    "qcc-document-mcp": {
+      "command": "npx",
+      "args": ["-y", "qcc-document-mcp"],
+      "env": {
+        "QCC_DOCUMENT_AUTHORIZATION": "Bearer ${QCC_MCP_TOKEN}"
+      }
+    }
+  }
+}

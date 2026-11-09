@@ -38,10 +38,16 @@ GUARD_ENV = {
 def _run(
     entry: list[str],
     *,
-    timeout: float = 60.0,
+    timeout: float = 180.0,
     env_override: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Invoke the real entry point in a fresh interpreter.
+
+    The timeout is generous on purpose: these guards assert *import success* and
+    that a real pipeline report is produced, not speed.  A cold child process
+    pays the full ``langchain_core`` + ``langgraph`` import cost (~50s on some
+    Windows hosts) before the CLI body even runs, so a tight limit would flag a
+    healthy entry point as broken.
 
     A child process never imports this repo's ``conftest.py``, so it sees the
     package exactly as a user would — the shim that used to live in

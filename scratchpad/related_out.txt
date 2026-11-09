@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "center_uscc": "91330110MAEW31RB2Q",
+  "center_name": "浙江胶友科技有限公司",
+  "merged_usccs": [
+    "91330110MAEW31RB2Q",
+    "91330201MABPBTAF58",
+    "91350200MA3569Y783"
+  ],
+  "network_size": 2,
+  "triples": {
+    "base": 39,
+    "closed": 739,
+    "added": 700
+  },
+  "owlrl": {
+    "available": true,
+    "new_triples": 494,
+    "closed_triples": 739
+  },
+  "direct": [
+    {
+      "uri": "存续",
+      "name": "存续",
+      "via": "hasBusinessStatus",
+      "raw_uri": "存续"
+    },
+    {
+      "uri": "E:91330201MABPBTAF58",
+      "name": "浙江瑞航国际贸易有限公司",
+      "via": "hasShareholder",
+      "raw_uri": "http://qcc.internal/entity/enterprise/91330201MABPBTAF58"
+    },
+    {
+      "uri": "E:91350200MA3569Y783",
+      "name": "厦门胶友科技有限公司",
+      "via": "hasShareholder",
+      "raw_uri": "http://qcc.internal/entity/enterprise/91350200MA3569Y783"
+    },
+    {
+      "uri": "陈海斌",
+      "name": "陈海斌",
+      "via": "hasLegalRep",
+      "raw_uri": "陈海斌"
+    },
+    {
+      "uri": "浙江胶友科技有限公司",
+      "name": "浙江胶友科技有限公司",
+      "via": "hasName",
+      "raw_uri": "浙江胶友科技有限公司"
+    },
+    {
+      "uri": "P:陈海斌",
+      "name": "陈海斌",
+      "via": "hasExecutive",
+      "raw_uri": "http://qcc.internal/entity/person/陈海斌"
+    },
+    {
+      "uri": "P:王爱军",
+      "name": "王爱军",
+      "via": "hasExecutive",
+      "raw_uri": "http://qcc.internal/entity/person/王爱军"
+    }
+  ],
+  "multi_hop": [
+    {
+      "uri": "E:91350200MA3569Y783",
+      "name": "厦门胶友科技有限公司",
+      "path": "1-hop"
+    },
+    {
+      "uri": "E:91330201MABPBTAF58",
+      "name": "浙江瑞航国际贸易有限公司",
+      "path": "1-hop"
+    }
+  ],
+  "shared_persons": [],
+  "guarantee_loops": []
+}

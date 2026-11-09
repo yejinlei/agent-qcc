@@ -14,3 +14,8 @@ build/
 *.egg
 *.db
 *.sqlite
+*.duckdb
+*.duckdb.wal
+.codegraph/
+.zvec-grep/
+.multica/

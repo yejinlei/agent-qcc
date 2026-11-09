@@ -1,0 +1,243 @@
+@prefix qcc: <http://qcc.internal/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+qcc:ontology a owl:Ontology ;
+    rdfs:label "QCC 企业尽调本体" ;
+    rdfs:comment "企查查企业尽调领域本体，覆盖企业/自然人/股权/任职/事件等核心实体。" .
+
+# ============================================================
+# 类定义
+# ============================================================
+
+qcc:Enterprise a owl:Class ;
+    rdfs:label "企业"@zh ;
+    rdfs:comment "工商登记的企业实体。" .
+
+qcc:Person a owl:Class ;
+    rdfs:label "自然人"@zh ;
+    rdfs:comment "自然人，可担任法代/高管/股东/实控人。" .
+
+qcc:Shareholder a owl:Class ;
+    rdfs:label "股东"@zh ;
+    rdfs:subClassOf qcc:Enterprise, qcc:Person .
+
+qcc:Controller a owl:Class ;
+    rdfs:label "实控人"@zh ;
+    rdfs:subClassOf qcc:Person .
+
+qcc:BeneficialOwner a owl:Class ;
+    rdfs:label "受益所有人"@zh ;
+    rdfs:subClassOf qcc:Person .
+
+qcc:Executive a owl:Class ;
+    rdfs:label "董监高"@zh ;
+    rdfs:comment "在某企业担任董事/监事/高管的自然人。" .
+
+qcc:Event a owl:Class ;
+    rdfs:label "事件"@zh ;
+    rdfs:comment "企业发生的合规/司法/经营风险事件。" .
+
+qcc:RiskSignal a owl:Class ;
+    rdfs:subClassOf qcc:Event ;
+    rdfs:label "风险信号"@zh .
+
+qcc:DishonestSignal a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "失信"@zh .
+qcc:RestrictedConsumption a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "限高"@zh .
+qcc:JudgmentDebtor a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "被执行人"@zh .
+qcc:EquityFreeze a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "股权冻结"@zh .
+qcc:BusinessException a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "经营异常"@zh .
+qcc:AdminPenalty a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "行政处罚"@zh .
+qcc:Bankruptcy a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "破产"@zh .
+qcc:PreLitigation a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "诉前保全"@zh .
+qcc:TaxArrears a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "税务欠税"@zh .
+qcc:EquityPledge a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "股权出质"@zh .
+qcc:Litigation a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "诉讼"@zh .
+qcc:PropertyAuction a owl:Class ; rdfs:subClassOf qcc:RiskSignal ; rdfs:label "资产拍卖"@zh .
+
+qcc:IPAsset a owl:Class ; rdfs:label "知识产权资产"@zh .
+qcc:Patent a owl:Class ; rdfs:subClassOf qcc:IPAsset ; rdfs:label "专利"@zh .
+qcc:Trademark a owl:Class ; rdfs:subClassOf qcc:IPAsset ; rdfs:label "商标"@zh .
+
+# ============================================================
+# 属性
+# ============================================================
+
+qcc:hasUSCC a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "统一社会信用代码"@zh .
+
+qcc:hasName a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise, qcc:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "名称"@zh .
+
+qcc:hasLegalRep a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "法定代表人"@zh .
+
+qcc:hasRegisteredCapital a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "注册资本"@zh .
+
+qcc:hasEstablishedAt a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:date ;
+    rdfs:label "成立日期"@zh .
+
+qcc:hasBusinessStatus a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "经营状态"@zh .
+
+qcc:hasBusinessScope a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "经营范围"@zh .
+
+qcc:hasRegisteredAddress a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "注册地址"@zh .
+
+qcc:hasRiskScore a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "风险分"@zh .
+
+qcc:hasRiskLevel a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "风险等级"@zh ;
+    rdfs:comment "取值 A/B/C/D，D 为拒绝级。" .
+
+qcc:hasRevenue a owl:DatatypeProperty ; rdfs:domain qcc:Enterprise ; rdfs:range xsd:decimal ; rdfs:label "营收"@zh .
+qcc:hasNetProfit a owl:DatatypeProperty ; rdfs:domain qcc:Enterprise ; rdfs:range xsd:decimal ; rdfs:label "净利润"@zh .
+qcc:hasDebtToAssetRatio a owl:DatatypeProperty ; rdfs:domain qcc:Enterprise ; rdfs:range xsd:decimal ; rdfs:label "资产负债率"@zh .
+
+qcc:hasRole a owl:DatatypeProperty ;
+    rdfs:domain qcc:Executive ;
+    rdfs:range xsd:string ;
+    rdfs:label "任职角色"@zh .
+
+qcc:hasPersonId a owl:DatatypeProperty ;
+    rdfs:domain qcc:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "自然人ID（脱敏）"@zh .
+
+qcc:hasOccurredAt a owl:DatatypeProperty ;
+    rdfs:domain qcc:Event ;
+    rdfs:range xsd:date ;
+    rdfs:label "发生时间"@zh .
+
+qcc:hasAmount a owl:DatatypeProperty ;
+    rdfs:domain qcc:Event ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "金额"@zh .
+
+qcc:hasSeverity a owl:DatatypeProperty ;
+    rdfs:domain qcc:RiskSignal ;
+    rdfs:range xsd:string ;
+    rdfs:label "严重程度"@zh .
+
+# ============================================================
+# 关系属性
+# ============================================================
+
+qcc:hasShareholder a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:Shareholder ;
+    rdfs:label "股东"@zh .
+
+qcc:hasStakeRatio a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "持股比例"@zh .
+
+qcc:isShareholderOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf owl:topObjectProperty ;
+    rdfs:label "是...的股东"@zh .
+
+qcc:hasController a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:Controller ;
+    rdfs:label "实控人"@zh .
+
+qcc:hasBeneficialOwner a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:BeneficialOwner ;
+    rdfs:label "受益所有人"@zh .
+
+qcc:hasExecutive a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:Executive ;
+    rdfs:label "董监高"@zh .
+
+qcc:worksAt a owl:ObjectProperty ;
+    rdfs:domain qcc:Executive ;
+    rdfs:range qcc:Enterprise ;
+    rdfs:label "任职于"@zh .
+
+qcc:hasEvent a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:Event ;
+    rdfs:label "涉及事件"@zh .
+
+qcc:controls a owl:ObjectProperty ;
+    rdfs:domain qcc:Controller ;
+    rdfs:range qcc:Enterprise ;
+    rdfs:label "控制"@zh ;
+    rdfs:comment "实控人-企业控制关系（直接或间接）。" .
+
+qcc:guarantees a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:label "担保"@zh .
+
+qcc:hasIPAsset a owl:ObjectProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range qcc:IPAsset ;
+    rdfs:label "知识产权资产"@zh .
+
+qcc:hasIndustry a owl:DatatypeProperty ;
+    rdfs:domain qcc:Enterprise ;
+    rdfs:range xsd:string ;
+    rdfs:label "所属行业"@zh .
+
+# ============================================================
+# owlrl 闭包所需的对称/逆属性声明
+#   （让闭世界推理能推出对称边的反向、以及"已确认无风险"）
+# ============================================================
+
+# 股东关系互为逆属性：hasShareholder ⇔ isShareholderOf
+qcc:hasShareholder owl:inverseOf qcc:isShareholderOf .
+
+# 任职关系互为逆属性：hasExecutive ⇔ worksAt
+qcc:hasExecutive owl:inverseOf qcc:worksAt .
+
+# 控制关系互为逆属性：hasController ⇔ controls
+qcc:hasController owl:inverseOf qcc:controls .
+
+# ============================================================
+# 闭世界"已确认无风险"标记类
+#   由 kg_engine 在确认企业无任何一票否决类事件后写入；
+#   owlrl 闭包会沿 subClassOf 推出 "也是 RiskSignal 的反面"——
+#   语义上用于区分"未发现"（无数据）与"已证明无"（有数据）。
+# ============================================================
+
+qcc:NoVetoSignal a owl:Class ;
+    rdfs:label "已确认无一票否决风险"@zh ;
+    rdfs:comment "确认企业无失信/限高/被执行/股权冻结记录。与 RiskSignal 互斥（disjointWith）。" .
+
+qcc:DishonestSignal owl:disjointWith qcc:NoVetoSignal .
+qcc:RestrictedConsumption owl:disjointWith qcc:NoVetoSignal .
+qcc:JudgmentDebtor owl:disjointWith qcc:NoVetoSignal .
+qcc:EquityFreeze owl:disjointWith qcc:NoVetoSignal .
+
+# 已确认无风险也是"风险扫描已执行"的证据
+qcc:RiskScanPerformed a owl:Class ;
+    rdfs:label "已完成风险扫描"@zh ;
+    rdfs:comment "MCP get_company_risk_scan 已执行，区分'扫描过无风险'与'从未扫描'。" .

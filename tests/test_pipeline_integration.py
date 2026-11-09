@@ -208,7 +208,9 @@ def trace(
             new_state(user_text), stream_mode=["updates", "values"]
         ):
             if mode == "updates":
-                sequence.extend(str(name) for name in payload)
+                # 自然语言输入下 slash 网关只写回空的 slash_result，不参与 4R+1 顺序；
+                # 网关本身的行为由 tests/test_slash_channel.py 单独钉住。
+                sequence.extend(str(name) for name in payload if name != "slash")
             else:
                 state.update(payload)
         assert state, "graph produced no state"
@@ -727,3 +729,39 @@ def test_duration_ms_reaches_the_rendered_report(company_skill: Skill):
     _, state = trace(pipeline, QUERY)
     assert all(int(item["duration_ms"]) >= 0 for item in state["evidence"])
     assert "ms)" in last_message_text(state)
+
+
+def test_guess_company_extracts_uscc_code():
+    uscc = "91330110MAEW31RB2Q"
+    text = f"查一下 {uscc} 的工商登记与股东结构"
+    assert Pipeline._guess_company(text) == uscc
+
+
+def test_make_checkpointer_supports_custom_callable():
+    from agent_qcc.store import make_checkpointer
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    class DummySettings:
+        checkpointer = "langgraph.checkpoint.memory.InMemorySaver"
+
+    saver = make_checkpointer(DummySettings())
+    assert isinstance(saver, InMemorySaver)
+
+
+def test_slash_normalize_args_allows_positional_to_override_default():
+    import importlib.util
+    slash_py = Path(__file__).resolve().parents[1] / "skills" / "qcc-super" / "scripts" / "slash.py"
+    spec = importlib.util.spec_from_file_location("slash_test_mod", slash_py)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    arg_specs = [
+        {"name": "company", "default": None},
+        {"name": "depth", "default": 1},
+    ]
+    # Positional "2" should override default depth=1
+    args = mod.normalize_args(["浙江胶友科技有限公司", "2"], arg_specs)
+    args = mod._convert_types(args, arg_specs)
+    assert args["company"] == "浙江胶友科技有限公司"
+    assert args["depth"] == 2
+

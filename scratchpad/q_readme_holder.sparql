@@ -1,0 +1,6 @@
+PREFIX qcc: <http://qcc.internal/ontology#>
+SELECT ?holder ?ratio WHERE {
+  ?e a qcc:Enterprise ; qcc:hasShareholder ?h .
+  ?h qcc:hasName ?holder .
+  OPTIONAL { ?h qcc:hasStakeRatio ?ratio }
+}

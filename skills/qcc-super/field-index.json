@@ -1,0 +1,484 @@
+{
+  "meta": {
+    "name": "qcc-super-field-index",
+    "version": "1.0.0",
+    "description": "企查查超级智能体字段索引。自然语言→最少MCP调用→本体论推理。",
+    "totalServers": 11,
+    "totalTools": 146,
+    "totalFields": 146,
+    "updated": "2026-09-16",
+    "auth": "Authorization: Bearer ${QCC_MCP_TOKEN}",
+    "certificationRequired": ["qcc-history"]
+  },
+
+  "fieldIndex": {
+    "工商登记": { "server": "qcc-company", "tool": "get_company_registration_info", "covers": 9, "fields": ["企业名称","统一社会信用代码","法定代表人","注册资本","成立日期","经营状态","企业类型","注册地址","经营范围"] },
+    "统一社会信用代码": { "server": "qcc-company", "tool": "verify_company_accuracy", "covers": 2, "fields": ["企业准确名称","统一社会信用代码"] },
+    "股东信息": { "server": "qcc-company", "tool": "get_shareholder_info", "covers": 6, "fields": ["股东名称","股东类型","持股比例","认缴出资额","认缴出资日期","首次出资日期"] },
+    "实际控制人": { "server": "qcc-company", "tool": "get_actual_controller", "covers": 5, "fields": ["实控人姓名","实控人类型","持股比例","控制力","控制路径"] },
+    "受益所有人": { "server": "qcc-company", "tool": "get_beneficial_owners", "covers": 5, "fields": ["受益所有人姓名","持股比例","25%阈值","穿透层级","最终持有人"] },
+    "对外投资": { "server": "qcc-company", "tool": "get_external_investments", "covers": 5, "fields": ["被投资企业","投资金额","持股比例","投资日期","经营状态"] },
+    "分支机构": { "server": "qcc-company", "tool": "get_branches", "covers": 4, "fields": ["分支机构名称","负责人","注册地址","经营状态"] },
+    "变更记录": { "server": "qcc-company", "tool": "get_change_records", "covers": 5, "fields": ["变更事项","变更前内容","变更后内容","变更日期","变更原因"] },
+    "关键人员": { "server": "qcc-company", "tool": "get_key_personnel", "covers": 4, "fields": ["人员姓名","人员职位","任职日期","关联关系"] },
+    "联系方式": { "server": "qcc-company", "tool": "get_contact_info", "covers": 3, "fields": ["联系电话","企业邮箱","注册地址"] },
+    "财务数据": { "server": "qcc-company", "tool": "get_financial_data", "covers": 7, "fields": ["营收","净利润","总资产","负债","所有者权益","流动比率","资产负债率"] },
+    "税务发票": { "server": "qcc-company", "tool": "get_tax_invoice_info", "covers": 4, "fields": ["纳税信用等级","发票类型","发票金额","开票日期"] },
+
+    "风险扫描(34类)": { "server": "qcc-risk", "tool": "get_company_risk_scan", "covers": 34, "fields": ["失信","限高","被执行","股权冻结","经营异常","行政处罚","税收违法","欠税公告","环保处罚","产品抽检","严重违法","法院公告","裁判文书","开庭公告","破产重整","清算信息","税务异常","海关失信","进出口信用","许可","担保","评级","经营状态","质押","拍卖","诉前调解","送达公告","年报","违约","逾期","法院风险","被执行人详情","环保"], "batch": true, "efficiency": 34.0 },
+    "失信被执行": { "server": "qcc-risk", "tool": "get_dishonest_people", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"] },
+    "限高": { "server": "qcc-risk", "tool": "get_high_consumption_restriction", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"] },
+    "被执行人": { "server": "qcc-risk", "tool": "get_judgment_debtor_info", "covers": 5, "fields": ["被执行人名称","执行标的","执行法院","立案日期","履行状态"] },
+    "股权冻结": { "server": "qcc-risk", "tool": "get_equity_freeze", "covers": 4, "fields": ["出质股权","冻结数额","冻结期限","冻结法院"] },
+    "经营异常": { "server": "qcc-risk", "tool": "get_business_exception", "covers": 4, "fields": ["异常原因","列入日期","列入机关","移出日期"] },
+    "法院公告": { "server": "qcc-risk", "tool": "get_court_announcement", "covers": 3, "fields": ["公告名称","公告日期","公告法院"] },
+    "裁判文书": { "server": "qcc-risk", "tool": "get_court_document", "covers": 6, "fields": ["案号","裁判日期","裁判法院","裁判结果","胜诉方","败诉方"] },
+    "行政处罚": { "server": "qcc-risk", "tool": "get_administrative_penalty", "covers": 4, "fields": ["处罚原因","处罚内容","处罚机关","处罚日期"] },
+    "欠税公告": { "server": "qcc-risk", "tool": "get_tax_arrears_announcement", "covers": 3, "fields": ["欠税金额","欠税时间","税务机关"] },
+    "税务非正常户": { "server": "qcc-risk", "tool": "get_tax_abnormal", "covers": 3, "fields": ["异常原因","列入日期","税务机关"] },
+    "严重违法失信": { "server": "qcc-risk", "tool": "get_severe_illegality", "covers": 4, "fields": ["违法原因","列入日期","列入机关","移出日期"] },
+    "环保处罚": { "server": "qcc-risk", "tool": "get_environmental_penalty", "covers": 4, "fields": ["处罚原因","处罚内容","处罚机关","处罚日期"] },
+    "产品抽检": { "server": "qcc-risk", "tool": "get_product_sampling_inspection", "covers": 3, "fields": ["产品名称","抽检结果","抽检机构"] },
+    "被执行人详情": { "server": "qcc-risk", "tool": "get_debtor_info", "covers": 4, "fields": ["被执行人","执行标的","执行法院","立案日期"] },
+    "清算信息": { "server": "qcc-risk", "tool": "get_clearance_case", "covers": 4, "fields": ["清算类型","清算日期","清算机构","清算结果"] },
+    "破产重整": { "server": "qcc-risk", "tool": "get_bankruptcy_reorganization", "covers": 4, "fields": ["案件名称","案号","受理法院","受理日期"] },
+    "行政许可": { "server": "qcc-risk", "tool": "get_administrative_license", "covers": 3, "fields": ["许可名称","许可内容","许可日期"] },
+    "信用评级": { "server": "qcc-risk", "tool": "get_credit_rating", "covers": 3, "fields": ["评级机构","评级结果","评级日期"] },
+    "信用担保": { "server": "qcc-risk", "tool": "get_credit_guarantee", "covers": 4, "fields": ["担保类型","担保金额","担保期限","被担保企业"] },
+    "经营状态": { "server": "qcc-risk", "tool": "get_business_status", "covers": 3, "fields": ["经营状态","变更日期","注销原因"] },
+    "股权质押": { "server": "qcc-risk", "tool": "get_equity_pledge", "covers": 5, "fields": ["出质股权","质押金额","质押期限","质权人","质押日期"] },
+    "司法拍卖": { "server": "qcc-risk", "tool": "get_property_auction", "covers": 4, "fields": ["拍卖标的","起拍价","拍卖法院","拍卖日期"] },
+    "诉前调解": { "server": "qcc-risk", "tool": "get_pre_litigation_mediation", "covers": 3, "fields": ["案件名称","调解日期","调解结果"] },
+    "送达公告": { "server": "qcc-risk", "tool": "get_notice_announcement", "covers": 3, "fields": ["公告名称","公告日期","公告法院"] },
+    "企业年报(风险)": { "server": "qcc-risk", "tool": "get_company_annual_report", "covers": 6, "fields": ["资产总额","负债总额","营收","净利润","从业人数","社保人数"] },
+    "税务异常": { "server": "qcc-risk", "tool": "get_company_tax_abnormal", "covers": 3, "fields": ["异常原因","列入日期","税务机关"] },
+    "海关失信": { "server": "qcc-risk", "tool": "get_customs_dishonest", "covers": 3, "fields": ["失信原因","列入日期","海关机关"] },
+    "进出口信用": { "server": "qcc-risk", "tool": "get_export_import_credit", "covers": 3, "fields": ["信用等级","评定日期","评定机关"] },
+    "开庭通知": { "server": "qcc-risk", "tool": "get_court_hearing_notice", "covers": 4, "fields": ["案号","开庭日期","开庭法院","案由"] },
+    "违约记录": { "server": "qcc-risk", "tool": "get_default_record", "covers": 3, "fields": ["违约类型","违约金额","违约日期"] },
+    "逾期票据": { "server": "qcc-risk", "tool": "get_overdue_bill", "covers": 3, "fields": ["票据类型","逾期金额","逾期日期"] },
+
+    "历史工商变更": { "server": "qcc-history", "tool": "get_historical_registration", "covers": 5, "fields": ["变更事项","变更前","变更后","变更日期","变更原因"], "requiresCert": true },
+    "历史法代": { "server": "qcc-history", "tool": "get_historical_legal_rep", "covers": 3, "fields": ["法代姓名","任职开始","任职结束"], "requiresCert": true },
+    "历史股东": { "server": "qcc-history", "tool": "get_historical_shareholders", "covers": 5, "fields": ["股东名称","持股比例","入股日期","退股日期","出资额"], "requiresCert": true },
+    "历史高管": { "server": "qcc-history", "tool": "get_historical_executives", "covers": 4, "fields": ["高管姓名","职务","任职开始","任职结束"], "requiresCert": true },
+    "历史上市": { "server": "qcc-history", "tool": "get_historical_listing", "covers": 4, "fields": ["上市板块","上市日期","股票代码","市值"], "requiresCert": true },
+    "历史失信": { "server": "qcc-history", "tool": "get_historical_dishonest", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"], "requiresCert": true },
+    "历史限高": { "server": "qcc-history", "tool": "get_historical_high_consumption_restriction", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"], "requiresCert": true },
+    "历史被执行": { "server": "qcc-history", "tool": "get_historical_judgment_debtor_info", "covers": 5, "fields": ["被执行人","执行标的","执行法院","立案日期","履行状态"], "requiresCert": true },
+    "历史股权冻结": { "server": "qcc-history", "tool": "get_historical_equity_freeze", "covers": 4, "fields": ["出质股权","冻结数额","冻结期限","冻结法院"], "requiresCert": true },
+    "历史经营异常": { "server": "qcc-history", "tool": "get_historical_business_exception", "covers": 4, "fields": ["异常原因","列入日期","列入机关","移出日期"], "requiresCert": true },
+    "历史行政处罚": { "server": "qcc-history", "tool": "get_historical_administrative_penalty", "covers": 4, "fields": ["处罚原因","处罚内容","处罚机关","处罚日期"], "requiresCert": true },
+    "历史税务异常": { "server": "qcc-history", "tool": "get_historical_tax_abnormal", "covers": 3, "fields": ["异常原因","列入日期","税务机关"], "requiresCert": true },
+    "历史严重违法": { "server": "qcc-history", "tool": "get_historical_severe_illegality", "covers": 4, "fields": ["违法原因","列入日期","列入机关","移出日期"], "requiresCert": true },
+    "历史被执行详情": { "server": "qcc-history", "tool": "get_historical_debtor_info", "covers": 4, "fields": ["被执行人","执行标的","执行法院","立案日期"], "requiresCert": true },
+
+    "高管风险扫描(18项)": { "server": "qcc-executive", "tool": "get_executive_risk_scan", "covers": 18, "fields": ["失信","限高","限出境","股权冻结","税收违法","控制企业","在外任职","裁判文书","开庭通知","立案信息","违约","经营状态","历史变更","关联企业风险","联系方式","任职历史","个人风险","关联"], "batch": true, "efficiency": 18.0 },
+    "高管失信": { "server": "qcc-executive", "tool": "get_executive_dishonest", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"] },
+    "高管限高": { "server": "qcc-executive", "tool": "get_executive_high_consumption_ban", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"] },
+    "高管限出境": { "server": "qcc-executive", "tool": "get_executive_exit_restriction", "covers": 4, "fields": ["案件名称","案件编号","立案日期","执行法院"] },
+    "高管股权冻结": { "server": "qcc-executive", "tool": "get_executive_equity_freeze", "covers": 4, "fields": ["出质股权","冻结数额","冻结期限","冻结法院"] },
+    "高管税收违法": { "server": "qcc-executive", "tool": "get_executive_tax_punishment", "covers": 4, "fields": ["处罚原因","处罚内容","处罚机关","处罚日期"] },
+    "高管控制企业": { "server": "qcc-executive", "tool": "get_executive_controlled_companies", "covers": 5, "fields": ["企业名称","持股比例","控制关系","企业状态","注册资本"] },
+    "高管关联企业": { "server": "qcc-executive", "tool": "get_executive_affiliations", "covers": 5, "fields": ["企业名称","关联类型","持股比例","企业状态","注册资本"] },
+    "高管裁判文书": { "server": "qcc-executive", "tool": "get_executive_court_document", "covers": 6, "fields": ["案号","裁判日期","裁判法院","裁判结果","原告","被告"] },
+    "高管开庭通知": { "server": "qcc-executive", "tool": "get_executive_court_hearing_notice", "covers": 4, "fields": ["案号","开庭日期","开庭法院","案由"] },
+    "高管立案信息": { "server": "qcc-executive", "tool": "get_executive_litigation_info", "covers": 5, "fields": ["案件名称","案号","立案日期","立案法院","案件状态"] },
+    "高管违约记录": { "server": "qcc-executive", "tool": "get_executive_default_record", "covers": 3, "fields": ["违约类型","违约金额","违约日期"] },
+    "高管经营状态": { "server": "qcc-executive", "tool": "get_executive_business_status", "covers": 3, "fields": ["经营状态","变更日期","注销原因"] },
+    "高管历史变更": { "server": "qcc-executive", "tool": "get_executive_history_change", "covers": 4, "fields": ["变更事项","变更前","变更后","变更日期"] },
+    "高管关联企业风险": { "server": "qcc-executive", "tool": "get_executive_related_companies_risk", "covers": 5, "fields": ["企业名称","风险类型","风险等级","风险详情","关联类型"] },
+    "高管联系方式": { "server": "qcc-executive", "tool": "get_executive_contact_info", "covers": 3, "fields": ["联系电话","企业邮箱","任职单位"] },
+    "高管任职历史": { "server": "qcc-executive", "tool": "get_executive_position_history", "covers": 4, "fields": ["企业名称","职务","任职开始","任职结束"] },
+    "高管个人风险": { "server": "qcc-executive", "tool": "get_executive_personal_risk", "covers": 6, "fields": ["失信记录","限高记录","限出境记录","股权冻结","税收违法","违约记录"] },
+
+    "专利": { "server": "qcc-ipr", "tool": "get_patent_info", "covers": 7, "fields": ["专利名称","专利号","专利类型","申请日期","公开日期","当前状态","法律状态"] },
+    "商标": { "server": "qcc-ipr", "tool": "get_trademark_info", "covers": 7, "fields": ["商标名称","注册号","类别","申请日期","注册日期","有效期","状态"] },
+    "软件著作权": { "server": "qcc-ipr", "tool": "get_software_copyright", "covers": 5, "fields": ["软件名称","登记号","登记日期","版本号","权利取得方式"] },
+    "知产出质": { "server": "qcc-ipr", "tool": "get_ipr_pledge", "covers": 5, "fields": ["质押标的","出质人","质权人","出质日期","质押期限"] },
+    "ICP备案": { "server": "qcc-ipr", "tool": "get_icp_license", "covers": 4, "fields": ["备案号码","网站名称","网站域名","备案日期"] },
+    "知产年报": { "server": "qcc-ipr", "tool": "get_ipr_annual_report", "covers": 4, "fields": ["报告年度","专利数量","商标数量","软著数量"] },
+    "专利年费": { "server": "qcc-ipr", "tool": "get_patent_annual_fee", "covers": 4, "fields": ["专利名称","专利号","年费金额","缴纳状态"] },
+    "商标质押": { "server": "qcc-ipr", "tool": "get_trademark_pledge", "covers": 5, "fields": ["出质商标","出质人","质权人","出质日期","质押期限"] },
+    "知产转让": { "server": "qcc-ipr", "tool": "get_ipr_transfer", "covers": 5, "fields": ["转让标的","转让人","受让人","转让日期","转让价格"] },
+
+    "招投标": { "server": "qcc-operation", "tool": "get_tender_info", "covers": 5, "fields": ["项目名称","项目编号","招标人","中标人","中标金额"] },
+    "招聘": { "server": "qcc-operation", "tool": "get_recruitment", "covers": 4, "fields": ["岗位名称","招聘人数","发布日期","薪资范围"] },
+    "双随机抽查": { "server": "qcc-operation", "tool": "get_random_check", "covers": 4, "fields": ["检查类型","检查日期","检查结果","检查机关"] },
+    "新闻舆情": { "server": "qcc-operation", "tool": "get_news_sentiment", "covers": 4, "fields": ["新闻标题","发布日期","情感倾向","来源"] },
+    "经营活动": { "server": "qcc-operation", "tool": "get_operating_activity", "covers": 4, "fields": ["经营类型","经营金额","经营日期","经营区域"] },
+    "中标信息": { "server": "qcc-operation", "tool": "get_bid_winning", "covers": 5, "fields": ["项目名称","项目编号","招标人","中标金额","中标日期"] },
+    "采购信息": { "server": "qcc-operation", "tool": "get_procurement_info", "covers": 5, "fields": ["项目名称","采购内容","采购金额","采购日期","采购单位"] },
+    "企业年报": { "server": "qcc-operation", "tool": "get_annual_report", "covers": 5, "fields": ["报告年度","资产总额","负债总额","从业人数","社保人数"] },
+    "企业新闻": { "server": "qcc-operation", "tool": "get_company_news", "covers": 3, "fields": ["新闻标题","发布日期","来源"] },
+
+    "法律法规检索": { "server": "qcc-legal-regulation", "tool": "get_legal_regulation", "covers": 5, "fields": ["法规名称","法规编号","发布日期","生效日期","效力状态"] },
+    "司法案例检索": { "server": "qcc-legal-case", "tool": "get_legal_case", "covers": 6, "fields": ["案号","裁判日期","裁判法院","裁判结果","案由","当事人"] },
+    "招投标搜索": { "server": "qcc-tender", "tool": "get_tender_search", "covers": 5, "fields": ["项目名称","项目编号","招标人","中标人","中标金额"] },
+    "远端文档解析": { "server": "qcc-document", "tool": "get_document_parse", "covers": 5, "fields": ["文档标题","文档内容","文档类型","页数","来源URL"] },
+    "本地文档解析": { "server": "qcc-document-mcp", "tool": "get_document_parse", "covers": 5, "fields": ["文档标题","文档内容","文档类型","页数","文件路径"], "requiresNode": true }
+  },
+
+  "serverTools": {
+    "qcc-company": {
+      "url": "https://agent.qcc.com/mcp/company/stream",
+      "toolCount": 12,
+      "tools": [
+        "get_company_registration_info","verify_company_accuracy","get_shareholder_info",
+        "get_actual_controller","get_beneficial_owners","get_external_investments",
+        "get_branches","get_change_records","get_key_personnel","get_contact_info",
+        "get_financial_data","get_tax_invoice_info"
+      ]
+    },
+    "qcc-risk": {
+      "url": "https://agent.qcc.com/mcp/risk/stream",
+      "toolCount": 32,
+      "tools": [
+        "get_company_risk_scan","get_dishonest_people","get_high_consumption_restriction",
+        "get_judgment_debtor_info","get_equity_freeze","get_business_exception",
+        "get_court_announcement","get_court_document","get_administrative_penalty",
+        "get_tax_arrears_announcement","get_tax_abnormal","get_severe_illegality",
+        "get_environmental_penalty","get_product_sampling_inspection","get_debtor_info",
+        "get_clearance_case","get_bankruptcy_reorganization","get_administrative_license",
+        "get_credit_rating","get_credit_guarantee","get_business_status","get_equity_pledge",
+        "get_property_auction","get_pre_litigation_mediation","get_notice_announcement",
+        "get_company_annual_report","get_company_tax_abnormal","get_customs_dishonest",
+        "get_export_import_credit","get_court_hearing_notice","get_default_record","get_overdue_bill"
+      ]
+    },
+    "qcc-history": {
+      "url": "https://agent.qcc.com/mcp/history/stream",
+      "toolCount": 14,
+      "requiresCert": true,
+      "tools": [
+        "get_historical_registration","get_historical_legal_rep","get_historical_shareholders",
+        "get_historical_executives","get_historical_listing","get_historical_dishonest",
+        "get_historical_high_consumption_restriction","get_historical_judgment_debtor_info",
+        "get_historical_equity_freeze","get_historical_business_exception",
+        "get_historical_administrative_penalty","get_historical_tax_abnormal",
+        "get_historical_severe_illegality","get_historical_debtor_info"
+      ]
+    },
+    "qcc-executive": {
+      "url": "https://agent.qcc.com/mcp/executive/stream",
+      "toolCount": 18,
+      "tools": [
+        "get_executive_risk_scan","get_executive_dishonest","get_executive_high_consumption_ban",
+        "get_executive_exit_restriction","get_executive_equity_freeze","get_executive_tax_punishment",
+        "get_executive_controlled_companies","get_executive_affiliations","get_executive_court_document",
+        "get_executive_court_hearing_notice","get_executive_litigation_info","get_executive_default_record",
+        "get_executive_business_status","get_executive_history_change",
+        "get_executive_related_companies_risk","get_executive_contact_info",
+        "get_executive_position_history","get_executive_personal_risk"
+      ]
+    },
+    "qcc-ipr": {
+      "url": "https://agent.qcc.com/mcp/ipr/stream",
+      "toolCount": 9,
+      "tools": [
+        "get_patent_info","get_trademark_info","get_software_copyright",
+        "get_ipr_pledge","get_icp_license","get_ipr_annual_report",
+        "get_patent_annual_fee","get_trademark_pledge","get_ipr_transfer"
+      ]
+    },
+    "qcc-operation": {
+      "url": "https://agent.qcc.com/mcp/operation/stream",
+      "toolCount": 9,
+      "tools": [
+        "get_tender_info","get_recruitment","get_random_check","get_news_sentiment",
+        "get_operating_activity","get_bid_winning","get_procurement_info",
+        "get_annual_report","get_company_news"
+      ]
+    },
+    "qcc-legal-regulation": { 
+      "url": "https://agent.qcc.com/mcp/regulation/stream",
+      "toolCount": 1,
+      "tools": ["get_legal_regulation"]
+    },
+    "qcc-legal-case": {
+      "url": "https://agent.qcc.com/mcp/case/stream",
+      "toolCount": 1,
+      "tools": ["get_legal_case"]
+    },
+    "qcc-tender": {
+      "url": "https://agent.qcc.com/mcp/tender/stream",
+      "toolCount": 1,
+      "tools": ["get_tender_search"]
+    },
+    "qcc-document": {
+      "url": "https://agent.qcc.com/mcp/document/stream",
+      "toolCount": 1,
+      "tools": ["get_document_parse"]
+    },
+    "qcc-document-mcp": {
+      "command": "npx -y qcc-document-mcp",
+      "toolCount": 1,
+      "requiresNode": true,
+      "tools": ["get_document_parse"]
+    }
+  },
+
+  "batchTools": [
+    {
+      "field": "风险扫描(34类)",
+      "server": "qcc-risk",
+      "tool": "get_company_risk_scan",
+      "coversFields": 34,
+      "replacesTools": [
+        "get_dishonest_people","get_high_consumption_restriction","get_judgment_debtor_info",
+        "get_equity_freeze","get_business_exception","get_administrative_penalty",
+        "get_tax_arrears_announcement","get_tax_abnormal","get_severe_illegality",
+        "get_environmental_penalty","get_product_sampling_inspection","get_debtor_info",
+        "get_clearance_case","get_bankruptcy_reorganization","get_administrative_license",
+        "get_credit_rating","get_credit_guarantee","get_business_status","get_equity_pledge",
+        "get_property_auction","get_pre_litigation_mediation","get_notice_announcement",
+        "get_company_annual_report","get_company_tax_abnormal","get_customs_dishonest",
+        "get_export_import_credit","get_court_hearing_notice","get_default_record","get_overdue_bill"
+      ],
+      "efficiency": 34.0
+    },
+    {
+      "field": "高管风险扫描(18项)",
+      "server": "qcc-executive",
+      "tool": "get_executive_risk_scan",
+      "coversFields": 18,
+      "replacesTools": [
+        "get_executive_dishonest","get_executive_high_consumption_ban","get_executive_exit_restriction",
+        "get_executive_equity_freeze","get_executive_tax_punishment","get_executive_controlled_companies",
+        "get_executive_affiliations","get_executive_court_document","get_executive_court_hearing_notice",
+        "get_executive_litigation_info","get_executive_default_record","get_executive_business_status",
+        "get_executive_history_change","get_executive_related_companies_risk","get_executive_contact_info",
+        "get_executive_position_history","get_executive_personal_risk"
+      ],
+      "efficiency": 18.0
+    }
+  ],
+
+  "presetSkills": {
+    "total": 27,
+    "groups": {
+      "banking": {
+        "label": "🏦 银行·合规风控",
+        "count": 12,
+        "skills": [
+          {"slash": "/ubo-screening-qcc", "servers": ["qcc-company"], "serverCount": 1, "efficiency": 5.0, "scene": "仅查股权/UBO/KYC"},
+          {"slash": "/credit-due-diligence", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 5.0, "scene": "信贷尽调"},
+          {"slash": "/litigation-analysis-qcc", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 5.0, "scene": "诉讼风险评估"},
+          {"slash": "/credit-monitoring", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 3.0, "scene": "贷后风险预警"},
+          {"slash": "/executive-background-qcc", "servers": ["qcc-company","qcc-executive","qcc-history","qcc-risk"], "serverCount": 4, "efficiency": 3.0, "scene": "高管背景核查"},
+          {"slash": "/guarantor-check", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 3.0, "scene": "担保方资信核查"},
+          {"slash": "/bankruptcy-monitor", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 3.0, "scene": "破产风险监控"},
+          {"slash": "/equity-structure", "servers": ["qcc-company","qcc-history","qcc-executive"], "serverCount": 3, "efficiency": 3.0, "scene": "股权穿透+UBO"},
+          {"slash": "/counterparty-risk", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation"], "serverCount": 5, "efficiency": 2.0, "scene": "交易对手风险"},
+          {"slash": "/trade-finance-compliance", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation"], "serverCount": 5, "efficiency": 2.0, "scene": "跨境贸易合规"},
+          {"slash": "/business-health-scan", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation"], "serverCount": 5, "efficiency": 2.0, "scene": "经营状态动态追踪"},
+          {"slash": "/kyb-verification-qcc", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation"], "serverCount": 5, "efficiency": 2.0, "scene": "银行开户KYB核验"}
+        ]
+      },
+      "invest": {
+        "label": "📊 投资·尽调",
+        "count": 6,
+        "skills": [
+          {"slash": "/ic-memo-qcc", "servers": ["qcc-company","qcc-risk","qcc-ipr","qcc-history","qcc-executive","qcc-operation"], "serverCount": 6, "efficiency": 5.0, "scene": "PE/VC投委会备忘录"},
+          {"slash": "/fundraising-tracker-qcc", "servers": ["qcc-company","qcc-operation"], "serverCount": 2, "efficiency": 2.0, "scene": "融资历史溯源"},
+          {"slash": "/competitor-analysis", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation"], "serverCount": 5, "efficiency": 2.0, "scene": "竞争对手分析"},
+          {"slash": "/strip-profile-qcc", "servers": ["qcc-company","qcc-risk","qcc-ipr","qcc-history","qcc-executive","qcc-operation"], "serverCount": 6, "efficiency": 2.0, "scene": "投资前快速画像"},
+          {"slash": "/history-evolution-qcc", "servers": ["qcc-company","qcc-risk","qcc-ipr","qcc-operation","qcc-history","qcc-executive"], "serverCount": 6, "efficiency": 2.0, "scene": "企业历史沿革"},
+          {"slash": "/ip-asset-inventory", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation","qcc-ipr"], "serverCount": 6, "efficiency": 2.0, "scene": "知产资产盘点"}
+        ]
+      },
+      "legal": {
+        "label": "⚖️ 法律·法务",
+        "count": 6,
+        "skills": [
+          {"slash": "/debt-recovery-assessment-qcc", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive"], "serverCount": 4, "efficiency": 3.0, "scene": "债务追偿评估"},
+          {"slash": "/contract-review", "servers": ["qcc-company","qcc-risk","qcc-operation"], "serverCount": 3, "efficiency": 1.0, "scene": "合同风险批注"},
+          {"slash": "/new-supplier-screening", "servers": ["qcc-company","qcc-risk","qcc-operation"], "serverCount": 3, "efficiency": 1.0, "scene": "供应商快速筛查"},
+          {"slash": "/contract-party-check", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation","qcc-ipr"], "serverCount": 6, "efficiency": 2.0, "scene": "合同主体核验"},
+          {"slash": "/labor-compliance", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation","qcc-ipr"], "serverCount": 6, "efficiency": 2.0, "scene": "用工合规排查"},
+          {"slash": "/ip-infringement-alert", "servers": ["qcc-company","qcc-risk","qcc-history","qcc-executive","qcc-operation","qcc-ipr"], "serverCount": 6, "efficiency": 2.0, "scene": "知产侵权预警"}
+        ]
+      },
+      "supply": {
+        "label": "🔗 采购·供应链",
+        "count": 3,
+        "skills": [
+          {"slash": "/supplier-annual-check", "servers": ["qcc-company","qcc-risk","qcc-operation","qcc-history","qcc-executive"], "serverCount": 5, "efficiency": 2.0, "scene": "供应商年度评审"},
+          {"slash": "/vendor-assess", "servers": ["qcc-company","qcc-risk","qcc-operation","qcc-history","qcc-executive"], "serverCount": 5, "efficiency": 2.0, "scene": "供应商深度尽调"},
+          {"slash": "/new-supplier-screening", "servers": ["qcc-company","qcc-risk","qcc-operation"], "serverCount": 3, "efficiency": 1.0, "scene": "招投标候选筛查"}
+        ]
+      }
+    },
+    "loading": {
+      "banking": "请加载企查查银行客群的 SKILL 集（共 12 个）：https://agent.qcc.com/skill/v1/banking/README.md",
+      "invest": "请加载企查查投资客群的 SKILL 集（共 6 个）：https://agent.qcc.com/skill/v1/invest/README.md",
+      "legal": "请加载企查查法务客群的 SKILL 集（共 6 个）：https://agent.qcc.com/skill/v1/legal/README.md",
+      "supply": "请加载企查查供应链客群的 SKILL 集（共 3 个）：https://agent.qcc.com/skill/v1/supply/README.md"
+    }
+  },
+
+  "routingAlgo": {
+    "description": "自然语言→字段提取→倒排索引→server聚合→批量调用→最少MCP调用",
+    "steps": [
+      {
+        "step": 1,
+        "name": "字段提取",
+        "action": "从自然语言中提取字段关键词，参照 fieldIndex 进行匹配",
+        "priority": ["精确匹配", "同义词匹配", "模糊匹配"]
+      },
+      {
+        "step": 2,
+        "name": "批量工具优先",
+        "action": "检查是否可被 batchTools 覆盖（get_company_risk_scan 替代 31 个工具）",
+        "condition": "字段集 ⊆ batchTools[].coversFields"
+      },
+      {
+        "step": 3,
+        "name": "Server 聚合",
+        "action": "按 server 分组，同 server 工具批量调用，最小化 server 连接数",
+        "aggregation": "group_by(server, tools)"
+      },
+      {
+        "step": 4,
+        "name": "效率评估",
+        "action": "计算 efficiency = coversFields / toolCalls，选择最优方案",
+        "threshold": { "optimal": ">=5.0", "suboptimal": "3.0-5.0", "normal": "1.0-3.0" }
+      }
+    ],
+    "examples": [
+      {
+        "input": "查一下注册资本、股东和专利",
+        "fields": ["注册资本", "股东", "专利"],
+        "mapping": {
+          "qcc-company": ["get_company_registration_info", "get_shareholder_info"],
+          "qcc-ipr": ["get_patent_info"]
+        },
+        "servers": 2,
+        "tools": 3,
+        "efficiency": 2.33
+      },
+      {
+        "input": "查一下风险情况",
+        "fields": ["风险"],
+        "mapping": {
+          "qcc-risk": ["get_company_risk_scan"]
+        },
+        "servers": 1,
+        "tools": 1,
+        "efficiency": 34.0,
+        "note": "批量工具覆盖 34 类风险"
+      },
+      {
+        "input": "查高管背景和失信",
+        "fields": ["高管", "失信"],
+        "mapping": {
+          "qcc-executive": ["get_executive_risk_scan"]
+        },
+        "servers": 1,
+        "tools": 1,
+        "efficiency": 18.0,
+        "note": "批量工具覆盖 18 项高管风险"
+      }
+    ]
+  },
+
+  "ontology": {
+    "entities": {
+      "Enterprise": {
+        "properties": ["name","uscc","legal_rep","registered_capital","status","type","address","establishment_date","business_scope","shareholders","executives","investments","branches","risk_signals","financial_data","ipr_assets"]
+      },
+      "Person": {
+        "properties": ["name","id_hash","roles","risk_flags","controlled_companies","affiliations"]
+      },
+      "Relationship": {
+        "types": ["持股","控制","担保","关联交易","任职"]
+      }
+    },
+    "riskRules": [
+      {
+        "id": "R1",
+        "name": "直接风险",
+        "condition": "risk_signals CONTAINS 失信/被执行/限高/股权冻结/经营异常",
+        "conclusion": "risk_level = D (直接拒绝)",
+        "fields": ["get_company_risk_scan"]
+      },
+      {
+        "id": "R2",
+        "name": "关联破产传导",
+        "condition": "real_controller = P AND P.controls(B) AND B.status = 破产重整",
+        "conclusion": "关联破产风险 = HIGH, risk_score += 0.3 × 控制权比例",
+        "fields": ["get_actual_controller","get_executive_controlled_companies","get_bankruptcy_reorganization"]
+      },
+      {
+        "id": "R3",
+        "name": "壳公司识别",
+        "condition": "法代变更≥3次(2y) AND 地址变更≥2次 AND 参保人数=0",
+        "conclusion": "壳公司嫌疑 = TRUE, risk_level → D",
+        "fields": ["get_historical_legal_rep","get_historical_registration","get_financial_data"]
+      },
+      {
+        "id": "R4",
+        "name": "股东风险传导",
+        "condition": "shareholder 有失信/被执行 AND 持股≥20%",
+        "conclusion": "股东风险传导 = TRUE, risk_score += 0.2 × 持股比例",
+        "fields": ["get_shareholder_info","get_dishonest_people","get_judgment_debtor_info"]
+      },
+      {
+        "id": "R5",
+        "name": "股权冻结影响",
+        "condition": "equity_freeze EXISTS",
+        "conclusion": "股权质押风险 = HIGH, risk_score += 0.15 × 冻结占比",
+        "fields": ["get_equity_freeze"]
+      },
+      {
+        "id": "R6",
+        "name": "高管一票否决",
+        "condition": "person.risk_flags CONTAINS 失信/限高/限出境/股权冻结",
+        "conclusion": "个人风险等级 = 一票否决",
+        "fields": ["get_executive_risk_scan"]
+      },
+      {
+        "id": "R7",
+        "name": "系统性风险主体",
+        "condition": "controls N companies AND M have 失信/被执行",
+        "conclusion": "系统性风险 = TRUE, risk_score = (M/N)×100",
+        "fields": ["get_executive_controlled_companies","get_executive_related_companies_risk"]
+      },
+      {
+        "id": "R8",
+        "name": "任职重叠风险",
+        "condition": "executive at K enterprises AND any has 失信/经营异常",
+        "conclusion": "关联风险传导 = TRUE",
+        "fields": ["get_executive_position_history","get_company_risk_scan"]
+      },
+      {
+        "id": "R9",
+        "name": "控制力衰减",
+        "condition": "持股<50% AND role != 法代",
+        "conclusion": "控制力 = 弱, risk_score -= 0.1",
+        "fields": ["get_actual_controller","get_shareholder_info"]
+      },
+      {
+        "id": "R10",
+        "name": "关联网络密度",
+        "condition": "related_companies = M AND K have risk",
+        "conclusion": "网络风险 = (K/M) × 密度系数",
+        "fields": ["get_executive_controlled_companies","get_executive_related_companies_risk"]
+      },
+      {
+        "id": "R11",
+        "name": "担保传导",
+        "condition": "guarantees(B) AND B.status = 破产/被执行",
+        "conclusion": "担保传导风险 = HIGH",
+        "fields": ["get_credit_guarantee","get_bankruptcy_reorganization","get_judgment_debtor_info"]
+      },
+      {
+        "id": "R12",
+        "name": "实控人变更预警",
+        "condition": "法代变更≥2次(1y)",
+        "conclusion": "控制权稳定性 = 低, risk_score += 0.15",
+        "fields": ["get_historical_legal_rep"]
+      }
+    ]
+  }
+}

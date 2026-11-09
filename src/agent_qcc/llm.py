@@ -18,11 +18,14 @@ usable without credentials.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
 
 from .config import Settings
+
+logger = logging.getLogger("agent_qcc.llm")
 
 
 @dataclass
@@ -163,7 +166,8 @@ class LlmClient:
         try:
             raw = await self._llm.ainvoke(self._messages(system, human))
             return self._response(raw).content
-        except Exception:
+        except Exception as exc:
+            logger.warning("LLM invoke_text failed: %s: %s", type(exc).__name__, exc)
             return None
 
     async def invoke_json(
@@ -187,7 +191,8 @@ class LlmClient:
         try:
             raw = await self._llm.ainvoke(self._messages(full_system, human))
             content = self._response(raw).content
-        except Exception:
+        except Exception as exc:
+            logger.warning("LLM invoke_json failed: %s: %s", type(exc).__name__, exc)
             return None
         payload = extract_json(content)
         if payload is None:

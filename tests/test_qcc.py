@@ -137,9 +137,12 @@ class TestQccClientOffline:
         assert headers["X-API-Key"] == "key-123"
 
     def test_session_id_in_headers(self, client):
-        client._session_id = "sess-abc"
+        """Session ids are kept per server URL, and sent to that URL only."""
+        client._session_ids[client.url] = "sess-abc"
         headers = client._headers()
         assert headers["Mcp-Session-Id"] == "sess-abc"
+        other = client._headers(url="https://agent.qcc.com/mcp/risk/stream")
+        assert "Mcp-Session-Id" not in other
 
     def test_url_from_skill(self, client):
         assert client.url == "https://agent.qcc.com/mcp/company/stream"

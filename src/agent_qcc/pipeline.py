@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -72,6 +73,23 @@ class Pipeline:
         self.client = QccClient(skill, settings)
         self.llm: LlmClient | None = make_llm(settings)
 
+    # -- R0 Slash ---------------------------------------------------------
+    async def slash(self, state: AgentState) -> dict[str, Any]:
+        """``/xxx`` 直通 skill 的 slash 分发器，不进 LLM、不走 4R+1。
+
+        永远返回 ``slash_result`` 键：同一 thread 的上一轮可能留下结果，
+        写回空 dict 才能把 graph 的条件边重新指回 ``route``。
+        """
+        from .slash_router import try_dispatch_slash
+
+        result = try_dispatch_slash(self._user_text(state))
+        if result is None:
+            return {"slash_result": {}}
+        return {
+            "slash_result": result,
+            "messages": [AIMessage(content=slash_markdown(result))],
+        }
+
     # -- R1 Route ---------------------------------------------------------
     async def route(self, state: AgentState) -> dict[str, Any]:
         user_text = self._user_text(state)
@@ -119,7 +137,7 @@ class Pipeline:
             "tool_calls": [
                 {
                     "tool": tool,
-                    "args": {"name": company} if company else {},
+                    "args": self._args_for(tool, company),
                     "reason": self._why(tool, aspects, intent),
                 }
                 for tool in ordered
@@ -132,15 +150,23 @@ class Pipeline:
     # -- R3 Retrieve ------------------------------------------------------
     async def retrieve(self, state: AgentState) -> dict[str, Any]:
         calls = (state.get("plan") or {}).get("tool_calls") or []
-        evidence: list[Evidence] = []
-        for call in calls:
-            name = str(call.get("tool") or "")
-            args = call.get("args") or {}
-            if not name:
-                continue
-            result = await self.client.call(name, args)
-            evidence.append(result.to_evidence())
-        return {"evidence": evidence}
+        valid_calls = [
+            (str(call.get("tool") or ""), call.get("args") or {})
+            for call in calls
+            if call.get("tool")
+        ]
+        if not valid_calls:
+            return {"evidence": []}
+
+        sem = asyncio.Semaphore(5)
+
+        async def _call_one(name: str, args: dict[str, Any]) -> Evidence:
+            async with sem:
+                result = await self.client.call(name, args)
+                return result.to_evidence()
+
+        results = await asyncio.gather(*[_call_one(name, args) for name, args in valid_calls])
+        return {"evidence": list(results)}
 
     # -- R4 Reflect -------------------------------------------------------
     async def reflect(self, state: AgentState) -> dict[str, Any]:
@@ -196,8 +222,13 @@ class Pipeline:
                 }
 
         # Rule-based fallback.
+        company = str(route.get("company") or "").strip()
         wanted = {str(item) for item in route.get("aspects") or []}
-        covered = [e.get("tool") for e in evidence if e.get("ok")]
+        covered = [
+            e.get("tool")
+            for e in evidence
+            if e.get("ok") and (not company or not e.get("target") or e.get("target") == company)
+        ]
         gaps = self._gaps(wanted, covered, evidence)
         iteration = int(state.get("iteration", 0)) + 1
 
@@ -235,7 +266,7 @@ class Pipeline:
                     "coverage": covered,
                     "gaps": gaps,
                     "fixes": [],
-                    "answer_notes": "证据充分，进入作答",
+                    "answer_notes": "证据充分或无法进一步补充，进入作答",
                 }
             ],
         }
@@ -282,6 +313,18 @@ class Pipeline:
                 return False
         return True
 
+    def _args_for(self, tool: str, company: str) -> dict[str, Any]:
+        """Build connector args for rule-based plans using the tool's first required arg.
+
+        qcc-super tools mostly require ``searchKey``; qcc-company tools require ``name``.
+        """
+        if not company:
+            return {}
+        spec = self.client.tools.get(tool)
+        requires = spec.requires if spec is not None else ()
+        key = requires[0] if requires else "name"
+        return {key: company}
+
     # -- helpers ----------------------------------------------------------
     def _user_text(self, state: AgentState) -> str:
         messages = state.get("messages") or []
@@ -293,6 +336,11 @@ class Pipeline:
     @staticmethod
     def _guess_company(text: str) -> str:
         import re
+
+        # 优先匹配 18 位统一社会信用代码 (USCC)
+        uscc_match = re.search(r"\b([0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10})\b", text, re.IGNORECASE)
+        if uscc_match:
+            return uscc_match.group(1).upper()
 
         match = re.search(r"[\u4e00-\u9fa5A-Za-z0-9（）()]{4,30}(?:股份有限公司|有限公司|集团|公司|中心|事务所|合伙企业)", text)
         return match.group(0) if match else ""
@@ -408,6 +456,46 @@ class Pipeline:
             ]
         )
         return "\n".join(lines)
+
+
+def slash_markdown(result: dict[str, Any]) -> str:
+    """把 slash 结果渲染成 markdown，供 REST / Playground 客户端消费。
+
+    CLI 有自己的 Rich 渲染（``cli._render_slash``），这里只负责把同一份 dict
+    变成 ``messages`` 里的文本，保证任何前端都能读到结果。
+    """
+    command = str(result.get("command") or "/slash")
+    if not result.get("ok"):
+        lines = [f"## {command} 执行失败", "", str(result.get("error") or "unknown error")]
+        if result.get("hint"):
+            lines += ["", f"> {result['hint']}"]
+        return "\n".join(lines)
+
+    commands = result.get("commands")
+    if commands:
+        lines = [
+            f"## {command} — 可用命令（{len(commands)}）",
+            "",
+            "| 命令 | 分类 | 说明 | 用法 |",
+            "| --- | --- | --- | --- |",
+        ]
+        lines += [
+            f"| `{item.get('slash', '')}` | {item.get('category', '')} "
+            f"| {item.get('label', '')} | `{item.get('usage', '')}` |"
+            for item in commands
+        ]
+        return "\n".join(lines)
+
+    body = {k: v for k, v in result.items() if k not in {"command", "ok", "handler", "servers"}}
+    return "\n".join(
+        [
+            f"## {command}",
+            "",
+            "```json",
+            json.dumps(body, ensure_ascii=False, indent=2, default=str),
+            "```",
+        ]
+    )
 
 
 def _truncate(value: Any, limit: int = 220) -> str:

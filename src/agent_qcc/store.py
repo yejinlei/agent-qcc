@@ -23,4 +23,10 @@ def make_checkpointer(settings) -> Any:
     import importlib
 
     module = importlib.import_module(module_name)
-    return getattr(module, attribute)
+    target = getattr(module, attribute)
+    if callable(target):
+        try:
+            return target()
+        except TypeError:
+            return target
+    return target

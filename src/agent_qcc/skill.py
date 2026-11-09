@@ -31,6 +31,7 @@ class ToolSpec:
     summary: str
     requires: tuple[str, ...] = ()
     ordinal: int = 0
+    server: str = ""  # MCP server 名（qcc-company / qcc-risk 等），用于多 server 路由
 
 
 @dataclass(frozen=True)
@@ -128,8 +129,54 @@ def parse_tools(body: str) -> tuple[ToolSpec, ...]:
     return tuple(tools)
 
 
+def parse_tools_from_json(json_path: Path) -> tuple[ToolSpec, ...]:
+    """从 tool_fields.json 加载工具目录（qcc-super 专用）。
+
+    JSON 结构: {"stats": {...}, "records": [{"server", "tool", "title", "description_clean", "input_params", ...}]}
+    """
+    if not json_path.exists():
+        return ()
+    try:
+        payload = json.loads(json_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return ()
+    records = payload.get("records") or []
+    tools: list[ToolSpec] = []
+    for index, rec in enumerate(records):
+        name = str(rec.get("tool") or "").strip()
+        if not name:
+            continue
+        # 提取必填参数（input_params 里 required=true 的）
+        requires: list[str] = []
+        for param in rec.get("input_params") or []:
+            if isinstance(param, dict) and param.get("required"):
+                pname = str(param.get("name") or "").strip()
+                if pname:
+                    requires.append(pname)
+        tools.append(
+            ToolSpec(
+                name=name,
+                title=str(rec.get("title") or name),
+                summary=str(rec.get("description_clean") or "")[:180],
+                requires=tuple(requires) or ("searchKey",),
+                ordinal=index + 1,
+                server=str(rec.get("server") or ""),
+            )
+        )
+    return tuple(tools)
+
+
 def load_skill(skills_dir: Path, skill_name: str) -> Skill:
-    """Load ``skills/<skill_name>`` and fail loudly when it is incomplete."""
+    """Load ``skills/<skill_name>`` and fail loudly when it is incomplete.
+
+    工具目录加载优先级：
+    1. SKILL.md 里的 ``## N. 标题 \`tool_name\`` 格式（qcc-company 等传统 skill）
+    2. references/tool_fields.json（qcc-super 等新版 skill，169 工具）
+
+    transport 加载：
+    - mcp.json 里的 mcpServers，支持多 server（qcc-super 有 11 个）
+    - 单 server 时 transport.url 直接可用；多 server 时 transport.servers 保存映射
+    """
     directory = Path(skills_dir) / skill_name
     skill_file = directory / "SKILL.md"
     if not skill_file.exists():
@@ -137,19 +184,45 @@ def load_skill(skills_dir: Path, skill_name: str) -> Skill:
 
     text = skill_file.read_text(encoding="utf-8")
     metadata, body = split_front_matter(text)
+
+    # 1. 先尝试从 SKILL.md 解析工具
     tools = parse_tools(body)
 
+    # 2. 解析不到则回退到 tool_fields.json
+    if not tools:
+        json_path = directory / "references" / "tool_fields.json"
+        tools = parse_tools_from_json(json_path)
+
+    # 3. 加载 transport（支持多 server）
     transport: dict[str, object] = {}
     transport_file = directory / "mcp.json"
     if transport_file.exists():
         payload = json.loads(transport_file.read_text(encoding="utf-8"))
         servers = payload.get("mcpServers") or {}
-        server = servers.get(skill_name) or (next(iter(servers.values())) if servers else {})
-        transport = {
-            "type": server.get("type", "streamableHttp"),
-            "url": server.get("url"),
-            "server": next(iter(servers.keys()), skill_name),
-        }
+        if len(servers) == 1:
+            # 单 server：兼容旧逻辑
+            server = next(iter(servers.values()))
+            transport = {
+                "type": server.get("type", "streamableHttp"),
+                "url": server.get("url"),
+                "server": next(iter(servers.keys()), skill_name),
+            }
+        elif servers:
+            # 多 server：保存映射，url 取第一个作为默认
+            first_name = next(iter(servers.keys()))
+            first_server = servers[first_name]
+            transport = {
+                "type": first_server.get("type", "streamableHttp"),
+                "url": first_server.get("url"),
+                "server": first_name,
+                "servers": {
+                    name: {
+                        "type": s.get("type", "streamableHttp"),
+                        "url": s.get("url"),
+                    }
+                    for name, s in servers.items()
+                },
+            }
 
     return Skill(
         name=metadata.get("name", skill_name),

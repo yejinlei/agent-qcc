@@ -1,0 +1,6 @@
+duckdb>=1.0.0
+# 本体论/图推理（可选，缺失自动降级）
+rdflib>=7.0.0
+pyshacl>=0.25.0
+# 完整 Semantica 平台（知识工程框架 0.6+：KG + Ontology + Reasoning + Ingest + Dedup）
+semantica>=0.6.0

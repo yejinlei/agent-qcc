@@ -18,7 +18,7 @@ def build_agent(settings: Settings | None = None):
     settings = settings or get_settings()
     skill = load_skill(settings.skills_dir, settings.qcc_skill_name)
     pipeline = Pipeline(skill, settings)
-    checkpointer = InMemorySaver()
+    checkpointer = make_checkpointer(settings)
     graph = build_graph(pipeline, checkpointer=checkpointer)
     return graph, checkpointer, pipeline, skill, settings
 

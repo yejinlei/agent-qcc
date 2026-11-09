@@ -1,0 +1,125 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix qcc: <http://qcc.internal/ontology#> .
+
+# ============================================================
+# Enterprise Shape
+# ============================================================
+qcc:EnterpriseShape a sh:NodeShape ;
+    rdfs:label "Enterprise Shape" ;
+    rdfs:comment "QCC enterprise constraints"@en ;
+    sh:targetClass qcc:Enterprise ;
+    sh:property [
+        sh:path qcc:hasUSCC ;
+        sh:minCount 1 ;
+        sh:pattern "^[0-9A-Z]{18}$" ;
+        sh:message "USCC must be 18-char uppercase alnum"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasName ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+        sh:maxCount 1 ;
+        sh:message "Enterprise name is required and unique"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasLegalRep ;
+        sh:minCount 1 ;
+        sh:message "Legal representative is required"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasRegisteredCapital ;
+        sh:datatype xsd:decimal ;
+        sh:min 0 ;
+        sh:max 1000000000000 ;
+        sh:message "Registered capital must be non-negative"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasBusinessStatus ;
+        sh:in ("存续" "注销" "吊销" "迁出" "吊销未注销") ;
+        sh:message "Business status must be one of allowed enum"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasRiskLevel ;
+        sh:in ("A" "B" "C" "D") ;
+        sh:message "Risk level must be A/B/C/D"@en
+    ] ;
+    sh:property [
+        sh:path qcc:hasRiskScore ;
+        sh:datatype xsd:decimal ;
+        sh:min 0 ;
+        sh:max 100
+    ] .
+
+# ============================================================
+# Shareholder Shape
+# ============================================================
+qcc:ShareholderShape a sh:NodeShape ;
+    rdfs:label "Shareholder Shape" ;
+    rdfs:comment "Shareholder constraints"@en ;
+    sh:targetClass qcc:Shareholder ;
+    sh:property [
+        sh:path qcc:hasName ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path qcc:hasStakeRatio ;
+        sh:datatype xsd:decimal ;
+        sh:min 0 ;
+        sh:max 1 ;
+        sh:message "Stake ratio must be in [0,1]"@en
+    ] .
+
+# ============================================================
+# Risk Signal Shape
+# ============================================================
+qcc:RiskSignalShape a sh:NodeShape ;
+    rdfs:label "RiskSignal Shape" ;
+    rdfs:comment "Risk event constraints"@en ;
+    sh:targetClass qcc:RiskSignal ;
+    sh:property [
+        sh:path qcc:hasOccurredAt ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path qcc:hasSeverity ;
+        sh:in ("HIGH" "MEDIUM" "LOW") ;
+        sh:message "Severity must be HIGH/MEDIUM/LOW"@en
+    ] .
+
+# ============================================================
+# Executive Shape
+# ============================================================
+qcc:ExecutiveShape a sh:NodeShape ;
+    rdfs:label "Executive Shape" ;
+    rdfs:comment "Executive constraints"@en ;
+    sh:targetClass qcc:Executive ;
+    sh:property [
+        sh:path qcc:hasName ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path qcc:hasRole ;
+        sh:minCount 1 ;
+        sh:in ("法代" "董事长" "总经理" "董事" "监事" "高管" "实控人") ;
+        sh:message "Role must be one of allowed enum"@en
+    ] .
+
+# ============================================================
+# Note on inference rules (R1 / R4):
+#   These are expressed declaratively as SPARQL queries and are
+#   executed by the pure-Python layer (kg_engine.infer_risk),
+#   which is more portable than a SHACL SPARQL Constraint
+#   (which requires sh:select + sh:join). Keep them here as
+#   documentation only, not as NodeShapes.
+#
+# R1 Dishonest Veto (one-vote-no):
+#     PREFIX qcc: <http://qcc.internal/ontology#>
+#     { ?e qcc:hasEvent ?ev . ?ev a qcc:DishonestSignal }
+#
+# R4 Shareholder Transmit:
+#     PREFIX qcc: <http://qcc.internal/ontology#>
+#     { ?e qcc:hasShareholder ?s . ?s a qcc:JudgmentDebtor }
+# ============================================================

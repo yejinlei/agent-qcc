@@ -15,6 +15,10 @@ dependencies = [
     "typer[all]>=0.12",
     "rich>=13.7",
     "python-dotenv>=1.0",
+    "duckdb>=1.0.0",
+    "semantica>=0.6.8",
+    "rdflib>=7.6.0",
+    "pyshacl>=0.40.1",
 ]
 
 [project.optional-dependencies]

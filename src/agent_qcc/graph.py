@@ -9,6 +9,11 @@ from .pipeline import Pipeline
 from .state import AgentState
 
 
+def _slash_next(state: AgentState) -> str:
+    """Slash 命令已处理 → 直接结束；自然语言 → 进入 4R+1 的 `route`."""
+    return END if state.get("slash_result") else "route"
+
+
 def _route_next(state: AgentState) -> str:
     """Skip straight to `respond` when the request is out of scope."""
     route = state.get("route") or {}
@@ -22,13 +27,19 @@ def _reflect_next(state: AgentState) -> str:
 
 def build_graph(pipeline: Pipeline, *, checkpointer=None) -> CompiledStateGraph:
     graph = StateGraph(AgentState)
+    graph.add_node("slash", pipeline.slash)
     graph.add_node("route", pipeline.route)
     graph.add_node("reason", pipeline.reason)
     graph.add_node("retrieve", pipeline.retrieve)
     graph.add_node("reflect", pipeline.reflect)
     graph.add_node("respond", pipeline.respond)
 
-    graph.add_edge(START, "route")
+    graph.add_edge(START, "slash")
+    graph.add_conditional_edges(
+        "slash",
+        _slash_next,
+        {"route": "route", END: END},
+    )
     graph.add_conditional_edges(
         "route",
         _route_next,
@@ -48,6 +59,7 @@ def build_graph(pipeline: Pipeline, *, checkpointer=None) -> CompiledStateGraph:
 def graph_spec() -> dict[str, str]:
     """Human readable topology, reused by README and the architecture diagram."""
     return {
+        "slash": "R0 Slash    /xxx 直通 skill 的 slash 命令（DuckDB / 知识图谱）",
         "route": "R1 Route    意图识别 + 企业名抽取（chitchat 直接短路）",
         "reason": "R2 Reason   依据 skill 工具清单规划最少调用",
         "retrieve": "R3 Retrieve 并发/顺序调用企查查连接器",

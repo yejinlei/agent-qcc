@@ -101,7 +101,8 @@ async def live_trace(pipeline: Pipeline, user_text: str) -> tuple[list[str], dic
     state: dict[str, Any] = {}
     async for mode, payload in graph.astream(new_state(user_text), stream_mode=["updates", "values"]):
         if mode == "updates":
-            sequence.extend(str(name) for name in payload)
+            # slash 网关只处理 /xxx 输入，自然语言轮次里它不属于 4R+1 顺序
+            sequence.extend(str(name) for name in payload if name != "slash")
         else:
             state.update(payload)
     return sequence, state

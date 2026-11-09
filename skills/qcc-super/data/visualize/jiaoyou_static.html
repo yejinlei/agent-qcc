@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>qcc-super 本体图谱 — 浙江胶友科技有限公司 (91330110MAEW31RB2Q)</title>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;height:100%;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#0f1117;color:#e6e8ee;}
+  #cy{width:100%;height:calc(100% - 96px);}
+  header{padding:12px 20px;background:#161a22;border-bottom:1px solid #2a2f3a;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  header h1{margin:0;font-size:16px;font-weight:600;}
+  header .meta{font-size:12px;color:#8892a6;}
+  header .meta span{margin-right:12px;}
+  #legend{padding:8px 20px;background:#12151c;border-top:1px solid #2a2f3a;font-size:12px;display:flex;gap:20px;flex-wrap:wrap;}
+  #legend .item{display:flex;align-items:center;gap:6px;}
+  #legend .dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+  #legend .line{width:24px;height:2px;display:inline-block;}
+  #info{padding:8px 20px;font-size:12px;color:#8892a6;max-height:60px;overflow-y:auto;background:#0c0f15;border-top:1px solid #2a2f3a;}
+</style>
+</head>
+<body>
+<header>
+  <h1>qcc-super 本体图谱</h1>
+  <div class="meta">
+    <span>中心：<b style="color:#66cc99">浙江胶友科技有限公司</b> (91330110MAEW31RB2Q)</span>
+    <span>节点 5 · 边 11</span>
+    <span>三元组 759</span>
+    <span>owlrl +502 三元组</span>
+  </div>
+</header>
+<div id="cy"></div>
+<div id="legend">
+  <div class="item"><span class="dot" style="background:#66cc99;box-shadow:0 0 0 2px #fff"></span>中心企业</div>
+  <div class="item"><span class="dot" style="background:#66cc99"></span>关联企业</div>
+  <div class="item"><span class="dot" style="background:#ffcc66"></span>自然人</div>
+  <div class="item"><span class="line" style="background:#8899aa"></span>股东</div>
+  <div class="item"><span class="line" style="background:#ffcc66"></span>高管/任职</div>
+  <div class="item"><span class="line" style="background:#66cc99"></span>法人</div>
+  <div class="item"><span class="line" style="background:#ff6666"></span>实控人/控制</div>
+  <div class="item"><span class="line" style="background:#ff99cc"></span>担保</div>
+</div>
+<div id="info">点击节点或边查看详情 · 拖拽平移 · 滚轮缩放</div>
+<script>
+const elements = {"nodes": [{"data": {"id": "E:91330110MAEW31RB2Q", "label": "浙江胶友科技有限公司", "type": "enterprise", "uscc": "91330110MAEW31RB2Q", "center": true}}, {"data": {"id": "E:91330201MABPBTAF58", "label": "浙江瑞航国际贸易有限公司", "type": "enterprise", "uscc": "91330201MABPBTAF58", "center": false}}, {"data": {"id": "E:91350200MA3569Y783", "label": "厦门胶友科技有限公司", "type": "enterprise", "uscc": "91350200MA3569Y783", "center": false}}, {"data": {"id": "P:陈海斌", "label": "陈海斌", "type": "person"}}, {"data": {"id": "P:王爱军", "label": "王爱军", "type": "person"}}], "edges": [{"data": {"id": "e0", "source": "E:91330110MAEW31RB2Q", "target": "P:陈海斌", "label": "高管", "prop": "hasExecutive"}, "style": {"style": "solid", "color": "#ffcc66"}}, {"data": {"id": "e1", "source": "P:王爱军", "target": "E:91330110MAEW31RB2Q", "label": "任职", "prop": "worksAt"}, "style": {"style": "dashed", "color": "#cc9944"}}, {"data": {"id": "e2", "source": "E:91330110MAEW31RB2Q", "target": "P:陈海斌", "label": "法人", "prop": "hasLegalRep"}, "style": {"style": "solid", "color": "#66cc99"}}, {"data": {"id": "e3", "source": "E:91330110MAEW31RB2Q", "target": "E:91350200MA3569Y783", "label": "股东", "prop": "hasShareholder"}, "style": {"style": "solid", "color": "#8899aa"}}, {"data": {"id": "e4", "source": "E:91330110MAEW31RB2Q", "target": "P:王爱军", "label": "高管", "prop": "hasExecutive"}, "style": {"style": "solid", "color": "#ffcc66"}}, {"data": {"id": "e5", "source": "E:91330201MABPBTAF58", "target": "E:91330110MAEW31RB2Q", "label": "股东", "prop": "isShareholderOf"}, "style": {"style": "dashed", "color": "#556677"}}, {"data": {"id": "e6", "source": "E:91350200MA3569Y783", "target": "E:91330110MAEW31RB2Q", "label": "股东", "prop": "isShareholderOf"}, "style": {"style": "dashed", "color": "#556677"}}, {"data": {"id": "e7", "source": "P:陈海斌", "target": "E:91330110MAEW31RB2Q", "label": "任职", "prop": "worksAt"}, "style": {"style": "dashed", "color": "#cc9944"}}, {"data": {"id": "e8", "source": "E:91330110MAEW31RB2Q", "target": "E:91330201MABPBTAF58", "label": "股东", "prop": "hasShareholder"}, "style": {"style": "solid", "color": "#8899aa"}}, {"data": {"id": "e9", "source": "E:91330201MABPBTAF58", "target": "P:陈海斌", "label": "法人", "prop": "hasLegalRep"}, "style": {"style": "solid", "color": "#66cc99"}}, {"data": {"id": "e10", "source": "E:91350200MA3569Y783", "target": "P:王爱军", "label": "法人", "prop": "hasLegalRep"}, "style": {"style": "solid", "color": "#66cc99"}}]};
+const style = [
+  {
+    selector: 'node',
+    style: {
+      'label': 'data(label)',
+      'font-size': '10px',
+      'color': '#e6e8ee',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'text-outline-color': '#0f1117',
+      'text-outline-width': 2,
+      'background-color': '#66cc99',
+      'border-width': 1,
+      'border-color': '#ffffff33',
+      'shape': 'round-rectangle',
+      'width': 32,
+      'height': 32,
+      'text-wrap': 'wrap',
+      'text-max-width': '110px',
+    }
+  },
+  { selector: 'node[type="enterprise"]', style: {
+    'background-color': '#66cc99', 'shape': 'round-rectangle',
+    'width': 36, 'height': 36, 'font-size': '11px',
+  } },
+  { selector: 'node[type="enterprise"][center="true"]', style: {
+    'background-color': '#66cc99', 'border-width': 4, 'border-color': '#ffffff',
+    'width': 46, 'height': 46, 'font-size': '13px', 'font-weight': 'bold',
+    'z-index': 10,
+  } },
+  { selector: 'node[type="person"]', style: {
+    'background-color': '#ffcc66', 'shape': 'ellipse',
+    'width': 26, 'height': 26, 'font-size': '10px',
+  } },
+  {
+    selector: 'edge',
+    style: {
+      'width': 1.2,
+      'line-color': '#555c6b',
+      'curve-style': 'bezier',
+      'target-arrow-shape': 'triangle',
+      'target-arrow-color': '#555c6b',
+      'target-arrow-size': 8,
+      'label': 'data(label)',
+      'font-size': '9px',
+      'color': '#8892a6',
+      'text-opacity': 0.6,
+      'text-outline-color': '#0f1117',
+      'text-outline-width': 2,
+    }
+  },
+  { selector: 'edge[prop="hasShareholder"]',   style: { 'line-color': '#8899aa', 'target-arrow-color': '#8899aa' } },
+  { selector: 'edge[prop="isShareholderOf"]',  style: { 'line-color': '#556677', 'target-arrow-color': '#556677', 'line-style': 'dashed' } },
+  { selector: 'edge[prop="hasExecutive"]',     style: { 'line-color': '#ffcc66', 'target-arrow-color': '#ffcc66' } },
+  { selector: 'edge[prop="worksAt"]',          style: { 'line-color': '#cc9944', 'target-arrow-color': '#cc9944', 'line-style': 'dashed' } },
+  { selector: 'edge[prop="hasController"]',    style: { 'line-color': '#ff6666', 'target-arrow-color': '#ff6666', 'width': 2 } },
+  { selector: 'edge[prop="controls"]',         style: { 'line-color': '#cc4444', 'target-arrow-color': '#cc4444', 'width': 2, 'line-style': 'dashed' } },
+  { selector: 'edge[prop="hasLegalRep"]',      style: { 'line-color': '#66cc99', 'target-arrow-color': '#66cc99' } },
+  { selector: 'edge[prop="guarantees"]',       style: { 'line-color': '#ff99cc', 'target-arrow-color': '#ff99cc' } },
+  { selector: 'node:selected, edge:selected', style: {
+    'border-width': 3, 'border-color': '#ffffff', 'z-index': 10,
+    'line-color': '#ffffff', 'target-arrow-color': '#ffffff',
+    'text-opacity': 1,
+  } },
+  { selector: 'node:unselected, edge:unselected', style: {
+    'opacity': 0.35, 'text-opacity': 0.2,
+  } },
+];
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  elements: elements,
+  style: style,
+  layout: { name: 'cose', animate: false, padding: 40, nodeRepulsion: 8000, idealEdgeLength: 90, edgeElasticity: 180 },
+  wheelSensitivity: 0.25,
+});
+const info = document.getElementById('info');
+cy.on('tap', 'node', function(e){
+  const d = e.target.data();
+  info.innerHTML = '节点 <b>' + d.label + '</b> · 类型：' + d.type +
+    (d.uscc ? ' · USCC：' + d.uscc : '') +
+    (d.center ? ' · <b style="color:#66cc99">中心企业</b>' : '');
+});
+cy.on('tap', 'edge', function(e){
+  const d = e.target.data();
+  const s = cy.getElementById(d.source).data('label');
+  const t = cy.getElementById(d.target).data('label');
+  info.innerHTML = '边：' + s + ' <b style="color:#ffcc66">' + d.label + '</b> → ' + t + ' · 谓词：' + d.prop;
+});
+cy.on('tap', function(e){
+  if(e.target === cy){ info.innerHTML = '点击节点或边查看详情 · 拖拽平移 · 滚轮缩放'; cy.$(':selected').unselect(); }
+});
+</script>
+</body>
+</html>

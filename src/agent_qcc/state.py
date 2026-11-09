@@ -49,6 +49,8 @@ class AgentState(TypedDict, total=False):
     reflections: list[dict[str, Any]]
     decision: Decision
     iteration: int
+    #: 非空表示本轮由 skill 的 slash 命令直接处理（跳过 4R+1）
+    slash_result: dict[str, Any]
 
 
 def new_state(user_input: str) -> AgentState:
@@ -61,4 +63,5 @@ def new_state(user_input: str) -> AgentState:
         "reflections": [],
         "decision": "respond",
         "iteration": 0,
+        "slash_result": {},
     }
